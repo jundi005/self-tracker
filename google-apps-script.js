@@ -1,6 +1,6 @@
 // Google Apps Script Web App Backend for Self Tracker
 // DEPLOYMENT INSTRUCTIONS:
-// 1. Deploy as Web App with 'Execute as: Me' and 'Who has access: Only myself'
+// 1. Deploy as Web App with 'Execute as: Me' and 'Who has access: Anyone' (PENTING!)
 // 2. No manual token or spreadsheet setup needed - everything auto-generated!
 // 3. Keep deployment URL private for security
 
@@ -54,9 +54,22 @@ function doGet(e) {
     let requestData = {};
     if (e.postData && e.postData.contents) {
       try {
-        requestData = JSON.parse(e.postData.contents);
+        // Handle both JSON and text/plain content types
+        if (e.postData.type === 'text/plain' || e.postData.type === 'application/json') {
+          requestData = JSON.parse(e.postData.contents);
+        } else {
+          requestData = JSON.parse(e.postData.contents);
+        }
       } catch (err) {
         console.error('Failed to parse request data:', err);
+        // If JSON parsing fails, try to parse as form data
+        if (e.parameter && e.parameter.payload) {
+          try {
+            requestData = JSON.parse(e.parameter.payload);
+          } catch (err2) {
+            console.error('Failed to parse payload parameter:', err2);
+          }
+        }
       }
     }
 

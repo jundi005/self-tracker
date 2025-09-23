@@ -19,18 +19,20 @@ export class APIClient {
 
         const url = `${this.baseURL}?action=${endpoint}`;
         const options = {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            method: method
         };
 
         // Pass data without token (Google Apps Script handles authentication)
         const requestData = data || {};
         
         if (method === 'POST' || method === 'PUT') {
+            // Use text/plain to avoid CORS preflight
+            options.headers = {
+                'Content-Type': 'text/plain'
+            };
             options.body = JSON.stringify(requestData);
         }
+        // GET requests don't need headers - avoids CORS preflight
 
         let lastError = null;
         

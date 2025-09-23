@@ -19,9 +19,9 @@ The application uses a vanilla JavaScript modular architecture with ES6 modules:
 ## Backend Architecture
 **Google Apps Script Web App** serves as the backend:
 - RESTful API endpoints for CRUD operations
-- Token-based authentication for security
+- Built-in Google authentication (no tokens required)
 - Direct Google Sheets integration for data persistence
-- CORS-enabled for cross-origin requests
+- CORS-optimized to avoid preflight requests
 
 ## Data Storage Solutions
 **Dual Storage Strategy**:
@@ -30,9 +30,10 @@ The application uses a vanilla JavaScript modular architecture with ES6 modules:
 - **Sync Logic**: Bidirectional synchronization between local and cloud storage with conflict resolution
 
 ## Authentication and Authorization
-- **Token-based authentication**: Simple API token validation in Google Apps Script
-- **Configurable access**: Users set up their own Google Apps Script deployment with custom tokens
+- **Google built-in authentication**: Uses Google Apps Script's native authentication
+- **Deployment-based access control**: Access controlled via Google Apps Script deployment settings
 - **No user accounts**: Direct integration with user's own Google Sheets
+- **No tokens required**: Authentication handled automatically by Google
 
 ## Data Architecture
 **Six main data entities**:
