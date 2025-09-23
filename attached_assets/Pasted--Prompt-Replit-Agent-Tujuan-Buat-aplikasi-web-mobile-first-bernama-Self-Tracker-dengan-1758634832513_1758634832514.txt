@@ -1,0 +1,112 @@
+## Prompt Replit Agent
+
+### Tujuan
+Buat aplikasi web mobile-first bernama **Self Tracker** dengan integrasi penuh ke Google Sheets (Apps Script Web App), mendukung fallback ke LocalStorage saat offline.
+
+### Stack
+- HTML + CSS (utility classes ala Tailwind, boleh pakai CDN)
+- Vanilla JS (modular, file terpisah per fungsi)
+- Chart.js untuk visualisasi grafik
+- Storage: Google Sheets (utama), LocalStorage (fallback)
+
+### Struktur Project
+- index.html
+- /assets/css/style.css
+- /assets/js/app.js           // UI logic
+- /assets/js/storage.js       // LocalStorage + merge
+- /assets/js/api.js           // fetch wrapper, sync logic
+- /assets/js/charts.js        // setup & render Chart.js
+- /assets/js/renderers.js     // builder grid & tabel
+
+### Fitur Aplikasi
+
+#### ✅ Daily Checklist
+- Baris = agenda (10 default)
+- Kolom = 30 hari bulan aktif
+- Checkbox
+- Hitung otomatis % per agenda (row) & % harian (kolom)
+
+#### 📅 Weekly Checklist
+- Kolom = Minggu 1–4
+- Baris = agenda mingguan
+- Checkbox + % per agenda & minggu
+
+#### 📆 Monthly Checklist
+- Kolom = 4 bulan (bulan aktif + 3 bulan depan)
+- Baris = target bulanan
+- Checkbox + % per target & bulan
+
+#### 💸 Finance Tracker
+- Form: date, category, desc, income, outcome
+- Tabel transaksi + saldo berjalan
+- Analisis budget (aman/over budget)
+
+#### 🏭 Business Tracker
+- Form: date, type, income, outcome, note
+- Ringkasan per jenis (total income/outcome/profit)
+
+#### 📊 Dashboard
+- Grafik:
+  - Line: % harian
+  - Bar: weekly vs monthly
+  - Donut: spending per kategori
+  - Clustered bar: budget vs realisasi
+  - Bar: ringkasan bisnis
+
+#### ⚙️ Settings
+- Set bulan aktif (YYYY-MM)
+- Ubah budget
+- Pilih mode storage (online/offline)
+- Tombol "Sync Now", Export/Import JSON
+
+### Google Sheets Integration
+- Gunakan Google Apps Script Web App
+- Token auth via header: Authorization: Bearer ${API_TOKEN}
+- CORS aktif
+- Endpoint:
+  - GET /health
+  - POST /init
+  - POST /sync/pull
+  - POST /sync/push
+
+### Apps Script Backend
+- Autogenerate script untuk:
+  - Buat sheet & header jika belum ada
+  - Auth check
+  - Routing berdasarkan endpoint
+  - Upsert & pull data dengan updated_at
+  - Response selalu JSON
+- Instruksi deploy:
+  - Buka script.google.com → New Project
+  - Paste kode, set TOKEN & SPREADSHEET_ID
+  - Deploy as Web App (execute as: Me, who has access: Anyone with link)
+  - Salin Deployment ID ke API_BASE di frontend
+
+### Sync Logic
+- Saat start: health → pull → render
+- Input: update state, push jika online
+- Tombol Sync Now = push + pull
+- Handling offline: tampilkan “Offline” banner
+- Retry push (max 3x)
+
+### Sample Data
+- Checklist: centang sebagian
+- Finance: 5–8 transaksi
+- Business: 3 transaksi, 2 jenis
+- Dashboard langsung tampil data
+
+### UX & Kualitas
+- Responsive (≥360px)
+- Tidak ada error console
+- Modular code dengan komentar ringkas
+- Validasi form (angka ≥0, wajib tanggal)
+- Mode default: online, fallback jika gagal
+
+### Bahasa
+- Bahasa frontend: Indonesia
+- Bahasa prompt: Indonesia
+
+### Output
+- Semua file HTML/CSS/JS frontend
+- File Apps Script backend lengkap
+- README singkat: deploy, ganti token, koneksi
