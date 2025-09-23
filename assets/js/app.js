@@ -111,10 +111,38 @@ class SelfTrackerApp {
         const app = document.getElementById('app');
         const sidebar = document.getElementById('sidebar');
         const toggle = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('mobileOverlay');
         
-        app.classList.toggle('sidebar-hidden');
-        sidebar.classList.toggle('hidden');
-        toggle.classList.toggle('active');
+        // Check if we're in mobile view
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            sidebar.classList.toggle('show-mobile');
+            toggle.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            // Prevent body scroll when sidebar is open on mobile
+            if (sidebar.classList.contains('show-mobile')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        } else {
+            app.classList.toggle('sidebar-hidden');
+            sidebar.classList.toggle('hidden');
+            toggle.classList.toggle('active');
+        }
+    }
+    
+    closeMobileSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('mobileOverlay');
+        
+        sidebar.classList.remove('show-mobile');
+        toggle.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     updateFinancialOverview() {
@@ -293,6 +321,18 @@ class SelfTrackerApp {
         document.getElementById('modal').addEventListener('click', (e) => {
             if (e.target.id === 'modal') {
                 this.closeModal();
+            }
+        });
+        
+        // Mobile overlay click to close sidebar
+        document.getElementById('mobileOverlay').addEventListener('click', () => {
+            this.closeMobileSidebar();
+        });
+        
+        // Close mobile sidebar when window is resized to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                this.closeMobileSidebar();
             }
         });
 

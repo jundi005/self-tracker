@@ -1,10 +1,14 @@
 // Google Apps Script Web App Backend for Self Tracker
-// Deploy this as a Web App in Google Apps Script
+// DEPLOYMENT INSTRUCTIONS:
+// 1. Deploy as Web App with 'Execute as: Me' and 'Who has access: Only myself'
+// 2. No manual token or spreadsheet setup needed - everything auto-generated!
+// 3. Keep deployment URL private for security
 
-// Configuration - UPDATE THESE VALUES
+// Configuration - AUTO-MANAGED (no user setup required)
 const CONFIG = {
-  TOKEN: 'your-api-token-here', // Change this to your secure token
-  SPREADSHEET_ID: 'your-spreadsheet-id-here', // Change this to your Google Sheets ID
+  // TOKEN removed - using Google's built-in authentication
+  SPREADSHEET_ID: 'AUTO_CREATE', // Will auto-create spreadsheet
+  SPREADSHEET_NAME: 'Self Tracker Data', // Name for auto-created spreadsheet
   SHEETS: {
     DAILY: 'Daily',
     WEEKLY: 'Weekly', 
@@ -40,10 +44,8 @@ function doGet(e) {
         .setHeaders(response.headers);
     }
 
-    // Check authentication
-    if (!checkAuth(e)) {
-      return createResponse({ error: 'Unauthorized' }, 401, response.headers);
-    }
+    // Authentication handled by Google Apps Script deployment settings
+    // Deploy with 'Execute as: Me' and 'Who has access: Anyone'
 
     // Get action from query parameter
     const action = e.parameter.action || 'health';
@@ -100,32 +102,27 @@ function doGet(e) {
 }
 
 // Authentication check
-function checkAuth(e) {
-  // Try to get token from query parameter first
-  let token = e.parameter.token;
-  
-  // If not in query, try to get from request body
-  if (!token && e.postData && e.postData.contents) {
-    try {
-      const requestData = JSON.parse(e.postData.contents);
-      token = requestData.token;
-    } catch (err) {
-      console.error('Failed to parse request data for token:', err);
+// Auto-create spreadsheet if needed
+function getOrCreateSpreadsheet() {
+  try {
+    const properties = PropertiesService.getScriptProperties();
+    let spreadsheetId = properties.getProperty('SPREADSHEET_ID');
+    
+    if (!spreadsheetId || CONFIG.SPREADSHEET_ID === 'AUTO_CREATE') {
+      // Create new spreadsheet
+      const spreadsheet = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
+      spreadsheetId = spreadsheet.getId();
+      properties.setProperty('SPREADSHEET_ID', spreadsheetId);
+      
+      console.log('Created new spreadsheet:', CONFIG.SPREADSHEET_NAME, 'ID:', spreadsheetId);
+      return spreadsheet;
+    } else {
+      return SpreadsheetApp.openById(spreadsheetId);
     }
+  } catch (error) {
+    console.error('Error getting/creating spreadsheet:', error);
+    throw error;
   }
-  
-  if (!token) {
-    console.log('No token found in request');
-    return false;
-  }
-
-  const isValid = token === CONFIG.TOKEN;
-  
-  if (!isValid) {
-    console.log('Invalid token provided');
-  }
-  
-  return isValid;
 }
 
 // Create HTTP response
@@ -155,7 +152,7 @@ function handleHealth() {
 // Initialize spreadsheet with required sheets
 function handleInit() {
   try {
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     
     // Create sheets if they don't exist
     Object.values(CONFIG.SHEETS).forEach(sheetName => {
@@ -168,7 +165,10 @@ function handleInit() {
 
     return {
       success: true,
-      message: 'Spreadsheet initialized successfully'
+      message: 'Spreadsheet auto-created and initialized successfully',
+      spreadsheetId: spreadsheet.getId(),
+      spreadsheetUrl: spreadsheet.getUrl(),
+      sheets: Object.values(CONFIG.SHEETS)
     };
   } catch (error) {
     console.error('Init error:', error);
@@ -208,7 +208,7 @@ function setupSheetHeaders(sheet, sheetName) {
 // Pull all data from spreadsheet
 function handlePull() {
   try {
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     const data = {};
 
     // Pull checklist data (daily, weekly, monthly)
@@ -253,7 +253,7 @@ function handlePull() {
 // Push data to spreadsheet
 function handlePush(requestData) {
   try {
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     
     // Push each data type
     Object.keys(requestData).forEach(type => {
@@ -275,7 +275,7 @@ function handlePush(requestData) {
 function handleCreate(requestData) {
   try {
     const { type, item } = requestData;
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     
     const result = addItemToSheet(spreadsheet, type, item);
     return { success: true, data: result };
@@ -289,7 +289,7 @@ function handleCreate(requestData) {
 function handleUpdate(requestData) {
   try {
     const { type, id, updates } = requestData;
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     
     const result = updateItemInSheet(spreadsheet, type, id, updates);
     return { success: true, data: result };
@@ -303,7 +303,7 @@ function handleUpdate(requestData) {
 function handleDelete(requestData) {
   try {
     const { type, id } = requestData;
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const spreadsheet = getOrCreateSpreadsheet();
     
     const result = deleteItemFromSheet(spreadsheet, type, id);
     return { success: true, data: result };

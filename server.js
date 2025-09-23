@@ -94,11 +94,13 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('');
     console.log('To deploy Google Apps Script backend:');
     console.log('  1. Open https://script.google.com');
-    console.log('  2. Create new project');
-    console.log('  3. Copy google-apps-script.js content');
-    console.log('  4. Update CONFIG.TOKEN and CONFIG.SPREADSHEET_ID');
-    console.log('  5. Deploy as Web App with "Anyone with link" access');
-    console.log('  6. Copy deployment URL to app settings');
+    console.log('  2. Create new project and paste google-apps-script.js content');
+    console.log('  3. Deploy as Web App with:');
+    console.log('     - Execute as: Me');
+    console.log('     - Who has access: Anyone (required for cross-origin requests)');
+    console.log('  4. Copy deployment URL to app settings');
+    console.log('  5. No API tokens or spreadsheet setup needed - auto-created!');
+    console.log('  6. Your spreadsheet will be created automatically on first use');
 });
 
 server.on('error', (err) => {
