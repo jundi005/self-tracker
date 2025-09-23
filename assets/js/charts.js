@@ -1,0 +1,371 @@
+// Chart.js Manager for dashboard visualizations
+export class ChartManager {
+    constructor() {
+        this.charts = {};
+        this.colors = {
+            primary: '#667eea',
+            secondary: '#764ba2',
+            success: '#10b981',
+            danger: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+    }
+
+    // Render daily progress line chart
+    renderDailyChart(dailyData, month) {
+        const ctx = document.getElementById('dailyChart');
+        if (!ctx) return;
+
+        // Destroy existing chart
+        if (this.charts.daily) {
+            this.charts.daily.destroy();
+        }
+
+        // Calculate daily completion percentages for the month
+        const daysInMonth = new Date(month + '-01').getMonth() === new Date(month + '-31').getMonth() ? 31 : 
+                           new Date(new Date(month + '-01').getFullYear(), new Date(month + '-01').getMonth() + 1, 0).getDate();
+        
+        const labels = [];
+        const data = [];
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${month}-${day.toString().padStart(2, '0')}`;
+            labels.push(day);
+            
+            let completed = 0;
+            let total = dailyData.length;
+            
+            dailyData.forEach(item => {
+                if (item.days && item.days[dateKey]) {
+                    completed++;
+                }
+            });
+            
+            const percentage = total > 0 ? (completed / total) * 100 : 0;
+            data.push(percentage);
+        }
+
+        this.charts.daily = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Progress Harian (%)',
+                    data: data,
+                    borderColor: this.colors.primary,
+                    backgroundColor: this.colors.primary + '20',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Render weekly vs monthly comparison bar chart
+    renderWeeklyMonthlyChart(weeklyData, monthlyData) {
+        const ctx = document.getElementById('weeklyMonthlyChart');
+        if (!ctx) return;
+
+        if (this.charts.weeklyMonthly) {
+            this.charts.weeklyMonthly.destroy();
+        }
+
+        // Calculate average completion for weekly and monthly
+        const weeklyCompletion = this.calculateAverageCompletion(weeklyData, 'weeks');
+        const monthlyCompletion = this.calculateAverageCompletion(monthlyData, 'months');
+
+        this.charts.weeklyMonthly = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Mingguan', 'Bulanan'],
+                datasets: [{
+                    label: 'Rata-rata Completion (%)',
+                    data: [weeklyCompletion, monthlyCompletion],
+                    backgroundColor: [this.colors.primary, this.colors.secondary],
+                    borderColor: [this.colors.primary, this.colors.secondary],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Render spending by category donut chart
+    renderCategoryChart(financeData) {
+        const ctx = document.getElementById('categoryChart');
+        if (!ctx) return;
+
+        if (this.charts.category) {
+            this.charts.category.destroy();
+        }
+
+        // Calculate spending by category
+        const categoryTotals = {};
+        financeData.forEach(transaction => {
+            if (transaction.outcome > 0) {
+                if (!categoryTotals[transaction.category]) {
+                    categoryTotals[transaction.category] = 0;
+                }
+                categoryTotals[transaction.category] += transaction.outcome;
+            }
+        });
+
+        const labels = Object.keys(categoryTotals);
+        const data = Object.values(categoryTotals);
+        const backgroundColors = labels.map((_, index) => {
+            const colors = [this.colors.primary, this.colors.secondary, this.colors.success, this.colors.warning, this.colors.info, this.colors.danger];
+            return colors[index % colors.length];
+        });
+
+        this.charts.category = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: Rp ${value.toLocaleString('id-ID')} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Render budget vs actual spending chart
+    renderBudgetChart(financeData, settings) {
+        const ctx = document.getElementById('budgetChart');
+        if (!ctx) return;
+
+        if (this.charts.budget) {
+            this.charts.budget.destroy();
+        }
+
+        // Calculate actual spending by category
+        const actualSpending = {};
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        
+        financeData
+            .filter(transaction => transaction.date.startsWith(currentMonth) && transaction.outcome > 0)
+            .forEach(transaction => {
+                if (!actualSpending[transaction.category]) {
+                    actualSpending[transaction.category] = 0;
+                }
+                actualSpending[transaction.category] += transaction.outcome;
+            });
+
+        // Assume equal budget distribution among categories
+        const budgetPerCategory = settings.monthlyBudget / settings.categories.length;
+        
+        const labels = settings.categories;
+        const budgetData = labels.map(() => budgetPerCategory);
+        const actualData = labels.map(category => actualSpending[category] || 0);
+
+        this.charts.budget = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Budget',
+                        data: budgetData,
+                        backgroundColor: this.colors.success + '80',
+                        borderColor: this.colors.success,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Realisasi',
+                        data: actualData,
+                        backgroundColor: this.colors.danger + '80',
+                        borderColor: this.colors.danger,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: Rp ${context.raw.toLocaleString('id-ID')}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Render business summary chart
+    renderBusinessChart(businessData) {
+        const ctx = document.getElementById('businessChart');
+        if (!ctx) return;
+
+        if (this.charts.business) {
+            this.charts.business.destroy();
+        }
+
+        // Group by business type
+        const businessSummary = {};
+        businessData.forEach(transaction => {
+            if (!businessSummary[transaction.type]) {
+                businessSummary[transaction.type] = { income: 0, outcome: 0 };
+            }
+            businessSummary[transaction.type].income += transaction.income;
+            businessSummary[transaction.type].outcome += transaction.outcome;
+        });
+
+        const labels = Object.keys(businessSummary);
+        const incomeData = labels.map(type => businessSummary[type].income);
+        const outcomeData = labels.map(type => businessSummary[type].outcome);
+
+        this.charts.business = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Pendapatan',
+                        data: incomeData,
+                        backgroundColor: this.colors.success + '80',
+                        borderColor: this.colors.success,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Pengeluaran',
+                        data: outcomeData,
+                        backgroundColor: this.colors.danger + '80',
+                        borderColor: this.colors.danger,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: Rp ${context.raw.toLocaleString('id-ID')}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Helper function to calculate average completion percentage
+    calculateAverageCompletion(data, timeKey) {
+        if (!data || data.length === 0) return 0;
+
+        let totalItems = 0;
+        let completedItems = 0;
+
+        data.forEach(item => {
+            const timeData = item[timeKey] || {};
+            const timeKeys = Object.keys(timeData);
+            
+            totalItems += timeKeys.length;
+            completedItems += timeKeys.filter(key => timeData[key]).length;
+        });
+
+        return totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    }
+
+    // Destroy all charts
+    destroyAll() {
+        Object.values(this.charts).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        this.charts = {};
+    }
+
+    // Resize all charts
+    resizeAll() {
+        Object.values(this.charts).forEach(chart => {
+            if (chart) chart.resize();
+        });
+    }
+}

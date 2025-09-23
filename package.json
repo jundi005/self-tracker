@@ -1,0 +1,14 @@
+{
+  "name": "self-tracker",
+  "version": "1.0.0",
+  "description": "Mobile-first self tracking application with Google Sheets integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["self-tracker", "productivity", "google-sheets"],
+  "author": "Self Tracker Team",
+  "license": "MIT",
+  "devDependencies": {}
+}

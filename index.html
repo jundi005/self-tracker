@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self Tracker</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="app" class="app">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header-title">Self Tracker</h1>
+            <div class="status-indicator">
+                <span id="connectionStatus" class="status-online">Online</span>
+                <button id="syncBtn" class="btn btn-sm">Sync</button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav">
+            <button class="nav-btn active" data-page="daily">Harian</button>
+            <button class="nav-btn" data-page="weekly">Mingguan</button>
+            <button class="nav-btn" data-page="monthly">Bulanan</button>
+            <button class="nav-btn" data-page="finance">Keuangan</button>
+            <button class="nav-btn" data-page="business">Bisnis</button>
+            <button class="nav-btn" data-page="dashboard">Dashboard</button>
+            <button class="nav-btn" data-page="settings">Pengaturan</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Daily Checklist Page -->
+            <section id="daily-page" class="page active">
+                <div class="page-header">
+                    <h2>Checklist Harian</h2>
+                    <button id="addDailyItem" class="btn btn-primary">+ Tambah Agenda</button>
+                </div>
+                <div class="daily-controls">
+                    <select id="dailyMonth" class="select">
+                        <option value="">Pilih Bulan</option>
+                    </select>
+                    <div class="daily-stats">
+                        <span>Progress: <span id="dailyProgress">0%</span></span>
+                    </div>
+                </div>
+                <div id="dailyGrid" class="daily-grid"></div>
+            </section>
+
+            <!-- Weekly Checklist Page -->
+            <section id="weekly-page" class="page">
+                <div class="page-header">
+                    <h2>Checklist Mingguan</h2>
+                    <button id="addWeeklyItem" class="btn btn-primary">+ Tambah Agenda</button>
+                </div>
+                <div class="weekly-controls">
+                    <select id="weeklyMonth" class="select">
+                        <option value="">Pilih Bulan</option>
+                    </select>
+                    <div class="weekly-stats">
+                        <span>Progress: <span id="weeklyProgress">0%</span></span>
+                    </div>
+                </div>
+                <div id="weeklyGrid" class="weekly-grid"></div>
+            </section>
+
+            <!-- Monthly Checklist Page -->
+            <section id="monthly-page" class="page">
+                <div class="page-header">
+                    <h2>Checklist Bulanan</h2>
+                    <button id="addMonthlyItem" class="btn btn-primary">+ Tambah Target</button>
+                </div>
+                <div class="monthly-controls">
+                    <select id="monthlyYear" class="select">
+                        <option value="">Pilih Tahun</option>
+                    </select>
+                    <div class="monthly-stats">
+                        <span>Progress: <span id="monthlyProgress">0%</span></span>
+                    </div>
+                </div>
+                <div id="monthlyGrid" class="monthly-grid"></div>
+            </section>
+
+            <!-- Finance Tracker Page -->
+            <section id="finance-page" class="page">
+                <div class="page-header">
+                    <h2>Tracker Keuangan</h2>
+                    <button id="addTransaction" class="btn btn-primary">+ Tambah Transaksi</button>
+                </div>
+                <div class="finance-summary">
+                    <div class="summary-card">
+                        <h3>Total Pemasukan</h3>
+                        <span id="totalIncome" class="amount positive">Rp 0</span>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total Pengeluaran</h3>
+                        <span id="totalOutcome" class="amount negative">Rp 0</span>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Saldo</h3>
+                        <span id="currentBalance" class="amount">Rp 0</span>
+                    </div>
+                </div>
+                <div class="finance-filters">
+                    <select id="financeMonth" class="select">
+                        <option value="">Semua Bulan</option>
+                    </select>
+                    <select id="financeCategory" class="select">
+                        <option value="">Semua Kategori</option>
+                    </select>
+                </div>
+                <div id="transactionTable" class="table-container"></div>
+            </section>
+
+            <!-- Business Tracker Page -->
+            <section id="business-page" class="page">
+                <div class="page-header">
+                    <h2>Tracker Bisnis</h2>
+                    <button id="addBusinessTransaction" class="btn btn-primary">+ Tambah Transaksi</button>
+                </div>
+                <div class="business-summary">
+                    <div class="summary-card">
+                        <h3>Total Pendapatan</h3>
+                        <span id="businessIncome" class="amount positive">Rp 0</span>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total Pengeluaran</h3>
+                        <span id="businessOutcome" class="amount negative">Rp 0</span>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Profit</h3>
+                        <span id="businessProfit" class="amount">Rp 0</span>
+                    </div>
+                </div>
+                <div class="business-filters">
+                    <select id="businessMonth" class="select">
+                        <option value="">Semua Bulan</option>
+                    </select>
+                    <select id="businessType" class="select">
+                        <option value="">Semua Jenis</option>
+                    </select>
+                </div>
+                <div id="businessTable" class="table-container"></div>
+            </section>
+
+            <!-- Dashboard Page -->
+            <section id="dashboard-page" class="page">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="chart-container">
+                        <h3>Progress Harian</h3>
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Mingguan vs Bulanan</h3>
+                        <canvas id="weeklyMonthlyChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Pengeluaran per Kategori</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Budget vs Realisasi</h3>
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Ringkasan Bisnis</h3>
+                        <canvas id="businessChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section id="settings-page" class="page">
+                <div class="page-header">
+                    <h2>Pengaturan</h2>
+                </div>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>Bulan Aktif</label>
+                        <input type="month" id="activeMonth" class="input">
+                    </div>
+                    <div class="form-group">
+                        <label>Mode Storage</label>
+                        <select id="storageMode" class="select">
+                            <option value="online">Online (Google Sheets)</option>
+                            <option value="offline">Offline (LocalStorage)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Budget Bulanan</label>
+                        <input type="number" id="monthlyBudget" class="input" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori Budget</label>
+                        <div id="budgetCategories" class="category-list"></div>
+                        <button id="addBudgetCategory" class="btn btn-secondary">+ Tambah Kategori</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Google Sheets API</label>
+                        <input type="text" id="apiToken" class="input" placeholder="Bearer Token">
+                        <input type="text" id="apiBase" class="input" placeholder="Apps Script URL">
+                        <button id="testConnection" class="btn btn-secondary">Test Koneksi</button>
+                    </div>
+                    <div class="form-actions">
+                        <button id="saveSettings" class="btn btn-primary">Simpan Pengaturan</button>
+                        <button id="exportData" class="btn btn-secondary">Export Data</button>
+                        <button id="importData" class="btn btn-secondary">Import Data</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
