@@ -265,9 +265,10 @@
                     </div>
                     <div class="form-group">
                         <label>Google Sheets API</label>
-                        <input type="text" id="apiToken" class="input" placeholder="Bearer Token">
-                        <input type="text" id="apiBase" class="input" placeholder="Apps Script URL">
+                        <input type="text" id="apiToken" class="input" placeholder="Bearer Token (Opsional - tidak digunakan lagi)" disabled>
+                        <input type="text" id="apiBase" class="input" placeholder="Apps Script URL (Wajib)" required>
                         <button id="testConnection" class="btn btn-secondary">Test Koneksi</button>
+                        <small style="color: #666; font-size: 0.9em;">Token tidak diperlukan lagi - Google Apps Script menggunakan autentikasi bawaan</small>
                     </div>
                     <div class="form-actions">
                         <button id="saveSettings" class="btn btn-primary">Simpan Pengaturan</button>

@@ -505,7 +505,7 @@ class SelfTrackerApp {
     // Connection and sync functions
     async checkConnection() {
         try {
-            if (this.data.settings.storageMode === 'online' && this.data.settings.apiBase && this.data.settings.apiToken) {
+            if (this.data.settings.storageMode === 'online' && this.data.settings.apiBase) {
                 this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
                 const response = await this.api.health();
                 this.isOnline = response.success;
@@ -1012,8 +1012,8 @@ class SelfTrackerApp {
         const apiBase = document.getElementById('apiBase').value;
         const apiToken = document.getElementById('apiToken').value;
         
-        if (!apiBase || !apiToken) {
-            alert('Harap masukkan URL dan token API!');
+        if (!apiBase) {
+            alert('Harap masukkan URL API!');
             return;
         }
         

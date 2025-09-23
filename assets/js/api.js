@@ -7,17 +7,17 @@ export class APIClient {
         this.retryDelay = 1000;
     }
 
-    configure(baseURL, token) {
+    configure(baseURL, token = '') {
         this.baseURL = baseURL;
-        this.token = token;
+        this.token = token; // Keep for backward compatibility but not required
     }
 
     async request(endpoint, method = 'GET', data = null) {
-        if (!this.baseURL || !this.token) {
-            throw new Error('API tidak dikonfigurasi. Silakan atur URL dan token di pengaturan.');
+        if (!this.baseURL) {
+            throw new Error('API tidak dikonfigurasi. Silakan atur URL di pengaturan.');
         }
 
-        const url = `${this.baseURL}?action=${endpoint}&token=${this.token}`;
+        const url = `${this.baseURL}?action=${endpoint}`;
         const options = {
             method: method,
             headers: {
@@ -25,8 +25,8 @@ export class APIClient {
             }
         };
 
-        // Pass data with token for authentication
-        const requestData = data ? { ...data, token: this.token } : { token: this.token };
+        // Pass data without token (Google Apps Script handles authentication)
+        const requestData = data || {};
         
         if (method === 'POST' || method === 'PUT') {
             options.body = JSON.stringify(requestData);
@@ -167,7 +167,7 @@ export class APIClient {
 
     // Helper method to check if API is configured
     isConfigured() {
-        return !!(this.baseURL && this.token);
+        return !!this.baseURL;
     }
 
     // Get API status
