@@ -33,7 +33,14 @@
     <div id="app" class="app hidden">
         <!-- Header -->
         <header class="header">
-            <h1 class="header-title">Self Tracker</h1>
+            <div class="header-left">
+                <button id="sidebarToggle" class="sidebar-toggle">
+                    <span class="hamburger"></span>
+                    <span class="hamburger"></span>
+                    <span class="hamburger"></span>
+                </button>
+                <h1 class="header-title">Self Tracker</h1>
+            </div>
             <div class="status-indicator">
                 <span id="connectionStatus" class="status-online">Online</span>
                 <button id="syncBtn" class="btn btn-sm">Sync</button>
@@ -41,21 +48,26 @@
             </div>
         </header>
 
-        <!-- Navigation -->
-        <nav class="nav">
-            <button class="nav-btn active" data-page="daily">Harian</button>
-            <button class="nav-btn" data-page="weekly">Mingguan</button>
-            <button class="nav-btn" data-page="monthly">Bulanan</button>
-            <button class="nav-btn" data-page="finance">Keuangan</button>
-            <button class="nav-btn" data-page="business">Bisnis</button>
-            <button class="nav-btn" data-page="dashboard">Dashboard</button>
-            <button class="nav-btn" data-page="settings">Pengaturan</button>
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Menu</h3>
+            </div>
+            <div class="sidebar-menu">
+                <button class="nav-btn" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="daily">Harian</button>
+                <button class="nav-btn" data-page="weekly">Mingguan</button>
+                <button class="nav-btn" data-page="monthly">Bulanan</button>
+                <button class="nav-btn" data-page="finance">Keuangan</button>
+                <button class="nav-btn" data-page="business">Bisnis</button>
+                <button class="nav-btn" data-page="settings">Pengaturan</button>
+            </div>
         </nav>
 
         <!-- Main Content -->
-        <main class="main">
+        <main class="main-content">
             <!-- Daily Checklist Page -->
-            <section id="daily-page" class="page active">
+            <section id="daily-page" class="page">
                 <div class="page-header">
                     <h2>Checklist Harian</h2>
                     <button id="addDailyItem" class="btn btn-primary">+ Tambah Agenda</button>
@@ -168,11 +180,37 @@
             </section>
 
             <!-- Dashboard Page -->
-            <section id="dashboard-page" class="page">
-                <div class="page-header">
-                    <h2>Dashboard</h2>
+            <section id="dashboard-page" class="page active">
+                <div class="welcome-section">
+                    <h1>Welcome to SELF TRACKER WEBSITE</h1>
+                    <p>you can record your habbit, manage your agendas, and see your finance flow</p>
                 </div>
+                
+                <!-- Financial Summary -->
+                <div class="finance-overview">
+                    <h2>Ringkasan Keuangan</h2>
+                    <div class="overview-stats">
+                        <div class="stat-card">
+                            <h3>Total Uang</h3>
+                            <span id="totalMoney" class="amount">Rp 0</span>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Income</h3>
+                            <span id="totalIncomeOverall" class="amount positive">Rp 0</span>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Spending</h3>
+                            <span id="totalSpendingOverall" class="amount negative">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
                 <div class="dashboard-grid">
+                    <div class="chart-container">
+                        <h3>Arus Kas Harian</h3>
+                        <canvas id="dailyCashFlowChart"></canvas>
+                    </div>
                     <div class="chart-container">
                         <h3>Progress Harian</h3>
                         <canvas id="dailyChart"></canvas>

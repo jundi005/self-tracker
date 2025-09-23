@@ -11,7 +11,7 @@ class SelfTrackerApp {
         this.charts = new ChartManager();
         this.renderer = new GridRenderer();
         
-        this.currentPage = 'daily';
+        this.currentPage = 'dashboard';
         this.isOnline = true;
         this.data = {
             daily: [],
@@ -107,6 +107,44 @@ class SelfTrackerApp {
         this.bindLoginEvents();
     }
 
+    toggleSidebar() {
+        const app = document.getElementById('app');
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebarToggle');
+        
+        app.classList.toggle('sidebar-hidden');
+        sidebar.classList.toggle('hidden');
+        toggle.classList.toggle('active');
+    }
+
+    updateFinancialOverview() {
+        let totalIncome = 0;
+        let totalSpending = 0;
+        
+        // Calculate from finance data
+        this.data.finance.forEach(transaction => {
+            totalIncome += transaction.income || 0;
+            totalSpending += transaction.outcome || 0;
+        });
+        
+        // Calculate from business data
+        this.data.business.forEach(transaction => {
+            totalIncome += transaction.income || 0;
+            totalSpending += transaction.outcome || 0;
+        });
+        
+        const totalMoney = totalIncome - totalSpending;
+        
+        // Update display
+        document.getElementById('totalMoney').textContent = this.formatCurrency(totalMoney);
+        document.getElementById('totalIncomeOverall').textContent = this.formatCurrency(totalIncome);
+        document.getElementById('totalSpendingOverall').textContent = this.formatCurrency(totalSpending);
+        
+        // Update colors
+        const totalMoneyEl = document.getElementById('totalMoney');
+        totalMoneyEl.className = 'amount ' + (totalMoney >= 0 ? 'positive' : 'negative');
+    }
+
     async loadSettings() {
         const settings = await this.storage.get('settings');
         if (settings) {
@@ -179,6 +217,11 @@ class SelfTrackerApp {
     }
 
     bindEvents() {
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            this.toggleSidebar();
+        });
+
         // Navigation events
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -371,6 +414,8 @@ class SelfTrackerApp {
     }
 
     renderDashboard() {
+        this.updateFinancialOverview();
+        this.charts.renderDailyCashFlowChart(this.data.finance, this.data.business, this.data.settings.activeMonth);
         this.charts.renderDailyChart(this.data.daily, this.data.settings.activeMonth);
         this.charts.renderWeeklyMonthlyChart(this.data.weekly, this.data.monthly);
         this.charts.renderCategoryChart(this.data.finance);

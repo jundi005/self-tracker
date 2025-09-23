@@ -15,6 +15,136 @@ export class ChartManager {
         };
     }
 
+    // Render daily cash flow chart
+    renderDailyCashFlowChart(financeData, businessData, month) {
+        const ctx = document.getElementById('dailyCashFlowChart');
+        if (!ctx) return;
+
+        // Destroy existing chart
+        if (this.charts.dailyCashFlow) {
+            this.charts.dailyCashFlow.destroy();
+        }
+
+        // Calculate daily cash flow for the month
+        const daysInMonth = new Date(month + '-01').getMonth() === new Date(month + '-31').getMonth() ? 31 : 
+                           new Date(new Date(month + '-01').getFullYear(), new Date(month + '-01').getMonth() + 1, 0).getDate();
+        
+        const labels = [];
+        const incomeData = [];
+        const outcomeData = [];
+        const netData = [];
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${month}-${day.toString().padStart(2, '0')}`;
+            labels.push(day);
+            
+            let dailyIncome = 0;
+            let dailyOutcome = 0;
+            
+            // Calculate from finance data
+            financeData.forEach(transaction => {
+                if (transaction.date === dateKey) {
+                    dailyIncome += transaction.income || 0;
+                    dailyOutcome += transaction.outcome || 0;
+                }
+            });
+            
+            // Calculate from business data
+            businessData.forEach(transaction => {
+                if (transaction.date === dateKey) {
+                    dailyIncome += transaction.income || 0;
+                    dailyOutcome += transaction.outcome || 0;
+                }
+            });
+            
+            incomeData.push(dailyIncome);
+            outcomeData.push(dailyOutcome);
+            netData.push(dailyIncome - dailyOutcome);
+        }
+
+        this.charts.dailyCashFlow = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Income',
+                    data: incomeData,
+                    borderColor: this.colors.success,
+                    backgroundColor: this.colors.success + '20',
+                    tension: 0.4,
+                    fill: false
+                }, {
+                    label: 'Spending',
+                    data: outcomeData,
+                    borderColor: this.colors.danger,
+                    backgroundColor: this.colors.danger + '20',
+                    tension: 0.4,
+                    fill: false
+                }, {
+                    label: 'Net Flow',
+                    data: netData,
+                    borderColor: this.colors.primary,
+                    backgroundColor: this.colors.primary + '20',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: {
+                            color: this.colors.text
+                        },
+                        grid: {
+                            color: this.colors.grid
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: this.colors.text,
+                            callback: function(value) {
+                                return new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0
+                                }).format(value);
+                            }
+                        },
+                        grid: {
+                            color: this.colors.grid
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: this.colors.text
+                        }
+                    },
+                    tooltip: {
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        backgroundColor: this.colors.background,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0
+                                }).format(context.parsed.y);
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // Render daily progress line chart
     renderDailyChart(dailyData, month) {
         const ctx = document.getElementById('dailyChart');
