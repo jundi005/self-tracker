@@ -72,10 +72,29 @@ class SelfTrackerApp {
 
     bindLoginEvents() {
         const loginForm = document.getElementById('loginForm');
-        loginForm.addEventListener('submit', (e) => {
+        
+        // Remove any existing event listeners to avoid conflicts
+        const newForm = loginForm.cloneNode(true);
+        loginForm.parentNode.replaceChild(newForm, loginForm);
+        
+        // Add new event listener
+        newForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.handleLogin();
+            return false;
         });
+        
+        // Also add click handler to submit button as backup
+        const submitBtn = newForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleLogin();
+                return false;
+            });
+        }
     }
 
     async handleLogin() {
