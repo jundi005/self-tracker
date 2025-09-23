@@ -8,13 +8,36 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div id="app" class="app">
+    <!-- Login Page -->
+    <div id="login-page" class="login-page">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Self Tracker</h1>
+                <p>Masuk ke akun Anda</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="input" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Masuk</button>
+                <div id="loginError" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="app" class="app hidden">
         <!-- Header -->
         <header class="header">
             <h1 class="header-title">Self Tracker</h1>
             <div class="status-indicator">
                 <span id="connectionStatus" class="status-online">Online</span>
                 <button id="syncBtn" class="btn btn-sm">Sync</button>
+                <button id="logoutBtn" class="btn btn-sm btn-secondary">Logout</button>
             </div>
         </header>
 

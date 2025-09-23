@@ -29,15 +29,82 @@ class SelfTrackerApp {
             }
         };
         
+        this.isAuthenticated = false;
         this.init();
     }
 
     async init() {
+        // Check authentication first
+        if (!this.checkAuthentication()) {
+            this.showLoginPage();
+            this.bindLoginEvents();
+            return;
+        }
+        
         await this.loadSettings();
         await this.initializeData();
         this.bindEvents();
         this.renderCurrentPage();
         await this.checkConnection();
+    }
+
+    checkAuthentication() {
+        const isLoggedIn = localStorage.getItem('selftracker_auth');
+        this.isAuthenticated = isLoggedIn === 'true';
+        return this.isAuthenticated;
+    }
+
+    showLoginPage() {
+        const loginPage = document.getElementById('login-page');
+        const appPage = document.getElementById('app');
+        
+        loginPage.classList.remove('hidden');
+        appPage.classList.add('hidden');
+    }
+
+    showAppPage() {
+        const loginPage = document.getElementById('login-page');
+        const appPage = document.getElementById('app');
+        
+        loginPage.classList.add('hidden');
+        appPage.classList.remove('hidden');
+    }
+
+    bindLoginEvents() {
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleLogin();
+        });
+    }
+
+    async handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        
+        // Check credentials
+        if (username === 'jundi' && password === 'jundi123') {
+            localStorage.setItem('selftracker_auth', 'true');
+            this.isAuthenticated = true;
+            
+            this.showAppPage();
+            await this.loadSettings();
+            await this.initializeData();
+            this.bindEvents();
+            this.renderCurrentPage();
+            await this.checkConnection();
+        } else {
+            errorDiv.textContent = 'Username atau password salah!';
+            errorDiv.classList.remove('hidden');
+        }
+    }
+
+    logout() {
+        localStorage.removeItem('selftracker_auth');
+        this.isAuthenticated = false;
+        this.showLoginPage();
+        this.bindLoginEvents();
     }
 
     async loadSettings() {
@@ -122,6 +189,11 @@ class SelfTrackerApp {
         // Sync button
         document.getElementById('syncBtn').addEventListener('click', () => {
             this.syncData();
+        });
+
+        // Logout button
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            this.logout();
         });
 
         // Daily checklist events
@@ -1027,6 +1099,30 @@ class SelfTrackerApp {
                     await this.api.update('daily', itemId, { days: item.days });
                 } catch (error) {
                     console.warn('Failed to sync daily checkbox update:', error);
+                }
+            }
+        }
+    }
+
+    async updateWeeklyCheckbox(itemId, weekKey, isChecked) {
+        const item = this.data.weekly.find(item => item.id === itemId);
+        if (item) {
+            if (!item.weeks) item.weeks = {};
+            
+            if (isChecked) {
+                item.weeks[weekKey] = true;
+            } else {
+                delete item.weeks[weekKey];
+            }
+            
+            item.updated_at = new Date().toISOString();
+            await this.storage.set('weekly', this.data.weekly);
+            
+            if (this.isOnline) {
+                try {
+                    await this.api.update('weekly', itemId, { weeks: item.weeks });
+                } catch (error) {
+                    console.warn('Failed to sync weekly checkbox update:', error);
                 }
             }
         }

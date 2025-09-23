@@ -3,12 +3,15 @@ export class ChartManager {
     constructor() {
         this.charts = {};
         this.colors = {
-            primary: '#667eea',
-            secondary: '#764ba2',
+            primary: '#8b5cf6',
+            secondary: '#7c3aed',
             success: '#10b981',
             danger: '#ef4444',
             warning: '#f59e0b',
-            info: '#3b82f6'
+            info: '#3b82f6',
+            background: 'rgba(31, 41, 55, 0.9)',
+            text: '#f3f4f6',
+            grid: 'rgba(139, 92, 246, 0.2)'
         };
     }
 
