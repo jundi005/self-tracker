@@ -289,52 +289,33 @@
     </div>
 
     <!-- Scripts -->
+    <script type="module" src="assets/js/storage.js"></script>
+    <script type="module" src="assets/js/api.js"></script>
+    <script type="module" src="assets/js/charts.js"></script>
+    <script type="module" src="assets/js/renderers.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
     <script>
-        // Simple login function without modules
-        function initApp() {
-            console.log('App initializing...');
-            
-            // Check if already logged in
-            const isLoggedIn = localStorage.getItem('selftracker_auth');
-            if (isLoggedIn === 'true') {
-                showApp();
-                return;
-            }
-            
-            // Show login page and bind events
-            showLogin();
-            bindLoginEvents();
-        }
-        
+        // Simple login handling - let SelfTrackerApp handle everything else
         function showLogin() {
-            console.log('Showing login page');
             document.getElementById('login-page').classList.remove('hidden');
             document.getElementById('app').classList.add('hidden');
         }
         
         function showApp() {
-            console.log('Showing app page');
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
-            
-            // Always load the full app when showing app page
-            loadFullApp();
         }
         
         function bindLoginEvents() {
-            console.log('Binding login events');
             const loginForm = document.getElementById('loginForm');
             const loginButton = loginForm.querySelector('button[type="submit"]');
             
             function handleLogin(e) {
                 e.preventDefault();
-                console.log('Login attempted');
                 
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const errorDiv = document.getElementById('loginError');
-                
-                console.log('Username:', username, 'Password length:', password.length);
                 
                 // Clear previous error
                 errorDiv.classList.add('hidden');
@@ -342,11 +323,10 @@
                 
                 // Check credentials
                 if (username === 'jundi' && password === 'jundi123') {
-                    console.log('Login successful');
                     localStorage.setItem('selftracker_auth', 'true');
                     showApp();
+                    // Let SelfTrackerApp handle everything from here
                 } else {
-                    console.log('Login failed - invalid credentials');
                     errorDiv.textContent = 'Username atau password salah!';
                     errorDiv.classList.remove('hidden');
                 }
@@ -356,100 +336,25 @@
             loginButton.addEventListener('click', handleLogin);
         }
         
-        function logout() {
+        // Initialize when DOM is loaded - only handle login
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in
+            const isLoggedIn = localStorage.getItem('selftracker_auth');
+            if (isLoggedIn === 'true') {
+                showApp();
+                // SelfTrackerApp will initialize automatically via its own DOMContentLoaded handler
+            } else {
+                showLogin();
+                bindLoginEvents();
+            }
+        });
+        
+        // Export logout function for SelfTrackerApp to use
+        window.logout = function() {
             localStorage.removeItem('selftracker_auth');
             showLogin();
             bindLoginEvents();
-        }
-        
-        function loadFullApp() {
-            console.log('Loading full application...');
-            
-            // Add basic event handlers for navigation
-            setupBasicNavigation();
-        }
-        
-        function setupBasicNavigation() {
-            console.log('Setting up basic navigation...');
-            
-            // Bind logout button
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    console.log('Logout clicked');
-                    logout();
-                });
-            }
-            
-            // Bind sidebar toggle
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.getElementById('sidebar');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-            
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
-                    console.log('Sidebar toggle clicked');
-                    sidebar.classList.toggle('active');
-                    mobileOverlay.classList.toggle('active');
-                });
-            }
-            
-            if (mobileOverlay) {
-                mobileOverlay.addEventListener('click', function() {
-                    console.log('Mobile overlay clicked');
-                    sidebar.classList.remove('active');
-                    mobileOverlay.classList.remove('active');
-                });
-            }
-            
-            // Bind navigation buttons
-            const navBtns = document.querySelectorAll('.nav-btn');
-            navBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const page = this.getAttribute('data-page');
-                    console.log('Navigation to page:', page);
-                    showPage(page);
-                });
-            });
-            
-            // Show default page
-            showPage('dashboard');
-        }
-        
-        function showPage(pageName) {
-            console.log('Showing page:', pageName);
-            
-            // Hide all pages
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => page.classList.remove('active'));
-            
-            // Show selected page
-            const targetPage = document.getElementById(pageName + '-page');
-            if (targetPage) {
-                targetPage.classList.add('active');
-            }
-            
-            // Update navigation
-            const navBtns = document.querySelectorAll('.nav-btn');
-            navBtns.forEach(btn => btn.classList.remove('active'));
-            
-            const activeBtn = document.querySelector(`[data-page="${pageName}"]`);
-            if (activeBtn) {
-                activeBtn.classList.add('active');
-            }
-            
-            // Close sidebar on mobile
-            const sidebar = document.getElementById('sidebar');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-            sidebar.classList.remove('active');
-            mobileOverlay.classList.remove('active');
-        }
-        
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing app...');
-            initApp();
-        });
+        };
     </script>
 </body>
 </html>

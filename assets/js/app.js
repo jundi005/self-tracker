@@ -140,10 +140,11 @@ class SelfTrackerApp {
     }
 
     logout() {
-        localStorage.removeItem('selftracker_auth');
+        // Use the global logout function from index.html
+        if (window.logout) {
+            window.logout();
+        }
         this.isAuthenticated = false;
-        this.showLoginPage();
-        this.bindLoginEvents();
     }
 
     toggleSidebar() {
