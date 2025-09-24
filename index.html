@@ -289,6 +289,93 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js"></script>
+    <script>
+        // Simple login function without modules
+        function initApp() {
+            console.log('App initializing...');
+            
+            // Check if already logged in
+            const isLoggedIn = localStorage.getItem('selftracker_auth');
+            if (isLoggedIn === 'true') {
+                showApp();
+                return;
+            }
+            
+            // Show login page and bind events
+            showLogin();
+            bindLoginEvents();
+        }
+        
+        function showLogin() {
+            console.log('Showing login page');
+            document.getElementById('login-page').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+        }
+        
+        function showApp() {
+            console.log('Showing app page');
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+        }
+        
+        function bindLoginEvents() {
+            console.log('Binding login events');
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = loginForm.querySelector('button[type="submit"]');
+            
+            function handleLogin(e) {
+                e.preventDefault();
+                console.log('Login attempted');
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const errorDiv = document.getElementById('loginError');
+                
+                console.log('Username:', username, 'Password length:', password.length);
+                
+                // Clear previous error
+                errorDiv.classList.add('hidden');
+                errorDiv.textContent = '';
+                
+                // Check credentials
+                if (username === 'jundi' && password === 'jundi123') {
+                    console.log('Login successful');
+                    localStorage.setItem('selftracker_auth', 'true');
+                    showApp();
+                    
+                    // Load the full app after successful login
+                    loadFullApp();
+                } else {
+                    console.log('Login failed - invalid credentials');
+                    errorDiv.textContent = 'Username atau password salah!';
+                    errorDiv.classList.remove('hidden');
+                }
+            }
+            
+            loginForm.addEventListener('submit', handleLogin);
+            loginButton.addEventListener('click', handleLogin);
+        }
+        
+        function logout() {
+            localStorage.removeItem('selftracker_auth');
+            showLogin();
+            bindLoginEvents();
+        }
+        
+        function loadFullApp() {
+            console.log('Loading full application...');
+            // This will load the full app with modules after successful login
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = 'assets/js/app.js';
+            document.body.appendChild(script);
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing app...');
+            initApp();
+        });
+    </script>
 </body>
 </html>
