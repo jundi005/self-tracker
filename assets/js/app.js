@@ -716,20 +716,28 @@ class SelfTrackerApp {
             return;
         }
 
-        if (!this.isOnline) {
-            alert('Tidak dapat refresh data. API tidak tersedia.');
-            return;
-        }
-
         try {
             const syncBtn = document.getElementById('syncBtn');
             syncBtn.disabled = true;
             syncBtn.innerHTML = '<span class="spinner"></span> Refresh...';
 
+            // Check connection first
+            await this.checkConnection();
+            
+            if (!this.isOnline) {
+                alert('Tidak dapat refresh data. API tidak tersedia. Periksa URL Google Apps Script di pengaturan.');
+                return;
+            }
+
             // Pull latest data from API
             const remoteData = await this.api.pull();
             if (remoteData) {
-                this.data = { ...this.data, ...remoteData };
+                // Merge remote data with current data structure
+                for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business', 'settings']) {
+                    if (remoteData[key]) {
+                        this.data[key] = remoteData[key];
+                    }
+                }
             }
 
             this.renderCurrentPage();

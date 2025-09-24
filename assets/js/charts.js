@@ -20,6 +20,10 @@ export class ChartManager {
         const ctx = document.getElementById('dailyCashFlowChart');
         if (!ctx) return;
 
+        // Ensure data arrays exist
+        financeData = financeData || [];
+        businessData = businessData || [];
+        
         // Destroy existing chart
         if (this.charts.dailyCashFlow) {
             this.charts.dailyCashFlow.destroy();
@@ -42,20 +46,24 @@ export class ChartManager {
             let dailyOutcome = 0;
             
             // Calculate from finance data
-            financeData.forEach(transaction => {
-                if (transaction.date === dateKey) {
-                    dailyIncome += transaction.income || 0;
-                    dailyOutcome += transaction.outcome || 0;
-                }
-            });
+            if (Array.isArray(financeData)) {
+                financeData.forEach(transaction => {
+                    if (transaction.date === dateKey) {
+                        dailyIncome += transaction.income || 0;
+                        dailyOutcome += transaction.outcome || 0;
+                    }
+                });
+            }
             
             // Calculate from business data
-            businessData.forEach(transaction => {
-                if (transaction.date === dateKey) {
-                    dailyIncome += transaction.income || 0;
-                    dailyOutcome += transaction.outcome || 0;
-                }
-            });
+            if (Array.isArray(businessData)) {
+                businessData.forEach(transaction => {
+                    if (transaction.date === dateKey) {
+                        dailyIncome += transaction.income || 0;
+                        dailyOutcome += transaction.outcome || 0;
+                    }
+                });
+            }
             
             incomeData.push(dailyIncome);
             outcomeData.push(dailyOutcome);
@@ -150,6 +158,9 @@ export class ChartManager {
         const ctx = document.getElementById('dailyChart');
         if (!ctx) return;
 
+        // Ensure data exists
+        dailyData = dailyData || [];
+        
         // Destroy existing chart
         if (this.charts.daily) {
             this.charts.daily.destroy();
@@ -167,13 +178,15 @@ export class ChartManager {
             labels.push(day);
             
             let completed = 0;
-            let total = dailyData.length;
+            let total = Array.isArray(dailyData) ? dailyData.length : 0;
             
-            dailyData.forEach(item => {
-                if (item.days && item.days[dateKey]) {
-                    completed++;
-                }
-            });
+            if (Array.isArray(dailyData)) {
+                dailyData.forEach(item => {
+                    if (item && item.days && item.days[dateKey]) {
+                        completed++;
+                    }
+                });
+            }
             
             const percentage = total > 0 ? (completed / total) * 100 : 0;
             data.push(percentage);
@@ -220,6 +233,10 @@ export class ChartManager {
         const ctx = document.getElementById('weeklyMonthlyChart');
         if (!ctx) return;
 
+        // Ensure data exists
+        weeklyData = weeklyData || [];
+        monthlyData = monthlyData || [];
+        
         if (this.charts.weeklyMonthly) {
             this.charts.weeklyMonthly.destroy();
         }
@@ -268,20 +285,25 @@ export class ChartManager {
         const ctx = document.getElementById('categoryChart');
         if (!ctx) return;
 
+        // Ensure data exists
+        financeData = financeData || [];
+        
         if (this.charts.category) {
             this.charts.category.destroy();
         }
 
         // Calculate spending by category
         const categoryTotals = {};
-        financeData.forEach(transaction => {
-            if (transaction.outcome > 0) {
-                if (!categoryTotals[transaction.category]) {
-                    categoryTotals[transaction.category] = 0;
+        if (Array.isArray(financeData)) {
+            financeData.forEach(transaction => {
+                if (transaction && transaction.outcome > 0) {
+                    if (!categoryTotals[transaction.category]) {
+                        categoryTotals[transaction.category] = 0;
+                    }
+                    categoryTotals[transaction.category] += transaction.outcome;
                 }
-                categoryTotals[transaction.category] += transaction.outcome;
-            }
-        });
+            });
+        }
 
         const labels = Object.keys(categoryTotals);
         const data = Object.values(categoryTotals);
@@ -328,6 +350,10 @@ export class ChartManager {
         const ctx = document.getElementById('budgetChart');
         if (!ctx) return;
 
+        // Ensure data exists
+        financeData = financeData || [];
+        settings = settings || { categories: [] };
+        
         if (this.charts.budget) {
             this.charts.budget.destroy();
         }
@@ -336,17 +362,20 @@ export class ChartManager {
         const actualSpending = {};
         const currentMonth = new Date().toISOString().slice(0, 7);
         
-        financeData
-            .filter(transaction => transaction.date.startsWith(currentMonth) && transaction.outcome > 0)
-            .forEach(transaction => {
-                if (!actualSpending[transaction.category]) {
-                    actualSpending[transaction.category] = 0;
-                }
-                actualSpending[transaction.category] += transaction.outcome;
-            });
+        if (Array.isArray(financeData)) {
+            financeData
+                .filter(transaction => transaction && transaction.date && transaction.date.startsWith(currentMonth) && transaction.outcome > 0)
+                .forEach(transaction => {
+                    if (!actualSpending[transaction.category]) {
+                        actualSpending[transaction.category] = 0;
+                    }
+                    actualSpending[transaction.category] += transaction.outcome;
+                });
+        }
 
         // Use individual category limits
-        const spendingCategories = settings.categories.filter(cat => cat.type === 'spending');
+        const spendingCategories = Array.isArray(settings.categories) ? 
+            settings.categories.filter(cat => cat && cat.type === 'spending') : [];
         
         const labels = spendingCategories.map(cat => cat.name);
         const budgetData = spendingCategories.map(cat => cat.limit);
@@ -404,19 +433,26 @@ export class ChartManager {
         const ctx = document.getElementById('businessChart');
         if (!ctx) return;
 
+        // Ensure data exists
+        businessData = businessData || [];
+        
         if (this.charts.business) {
             this.charts.business.destroy();
         }
 
         // Group by business type
         const businessSummary = {};
-        businessData.forEach(transaction => {
-            if (!businessSummary[transaction.type]) {
-                businessSummary[transaction.type] = { income: 0, outcome: 0 };
-            }
-            businessSummary[transaction.type].income += transaction.income;
-            businessSummary[transaction.type].outcome += transaction.outcome;
-        });
+        if (Array.isArray(businessData)) {
+            businessData.forEach(transaction => {
+                if (transaction && transaction.type) {
+                    if (!businessSummary[transaction.type]) {
+                        businessSummary[transaction.type] = { income: 0, outcome: 0 };
+                    }
+                    businessSummary[transaction.type].income += transaction.income || 0;
+                    businessSummary[transaction.type].outcome += transaction.outcome || 0;
+                }
+            });
+        }
 
         const labels = Object.keys(businessSummary);
         const incomeData = labels.map(type => businessSummary[type].income);
@@ -471,17 +507,19 @@ export class ChartManager {
 
     // Helper function to calculate average completion percentage
     calculateAverageCompletion(data, timeKey) {
-        if (!data || data.length === 0) return 0;
+        if (!Array.isArray(data) || data.length === 0) return 0;
 
         let totalItems = 0;
         let completedItems = 0;
 
         data.forEach(item => {
-            const timeData = item[timeKey] || {};
-            const timeKeys = Object.keys(timeData);
-            
-            totalItems += timeKeys.length;
-            completedItems += timeKeys.filter(key => timeData[key]).length;
+            if (item && item[timeKey]) {
+                const timeData = item[timeKey] || {};
+                const timeKeys = Object.keys(timeData);
+                
+                totalItems += timeKeys.length;
+                completedItems += timeKeys.filter(key => timeData[key]).length;
+            }
         });
 
         return totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
