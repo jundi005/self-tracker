@@ -561,8 +561,14 @@ class SelfTrackerApp {
     }
 
     async syncData() {
+        // Check if API base is configured
+        if (!this.data.settings.apiBase || this.data.settings.apiBase.trim() === '') {
+            alert('Harap konfigurasi Google Apps Script URL di pengaturan terlebih dahulu!');
+            return;
+        }
+
         if (!this.isOnline) {
-            alert('Tidak dapat sinkronisasi dalam mode offline');
+            alert('Tidak dapat sinkronisasi. Koneksi offline atau API tidak tersedia.');
             return;
         }
 
@@ -584,8 +590,12 @@ class SelfTrackerApp {
             this.renderCurrentPage();
             alert('Sinkronisasi berhasil!');
         } catch (error) {
-            console.error('Sync failed:', error);
-            alert('Sinkronisasi gagal: ' + error.message);
+            console.warn('Sync failed:', error);
+            if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+                alert('Sinkronisasi gagal: Tidak dapat terhubung ke server. Pastikan URL Google Apps Script sudah benar dan dapat diakses.');
+            } else {
+                alert('Sinkronisasi gagal: ' + error.message);
+            }
         } finally {
             const syncBtn = document.getElementById('syncBtn');
             syncBtn.disabled = false;
