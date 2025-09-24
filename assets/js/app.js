@@ -581,6 +581,7 @@ class SelfTrackerApp {
         const selectedCategory = document.getElementById('financeCategory').value;
         
         const filteredData = this.filterFinanceData(selectedMonth, selectedCategory);
+        this.renderer.setCategoriesData(this.data.settings.categories);
         const tableHtml = this.renderer.renderTransactionTable(filteredData);
         document.getElementById('transactionTable').innerHTML = tableHtml;
         
@@ -596,6 +597,7 @@ class SelfTrackerApp {
         const selectedType = document.getElementById('businessType').value;
         
         const filteredData = this.filterBusinessData(selectedMonth, selectedType);
+        this.renderer.setCategoriesData(this.data.settings.categories);
         const tableHtml = this.renderer.renderBusinessTable(filteredData);
         document.getElementById('businessTable').innerHTML = tableHtml;
         
@@ -1181,6 +1183,11 @@ class SelfTrackerApp {
     renderBudgetCategories() {
         const container = document.getElementById('budgetCategories');
         let html = '<div class="categories-section">';
+        
+        // Ensure categories exist and are initialized
+        if (!this.data.settings.categories) {
+            this.data.settings.categories = [];
+        }
         
         // Spending Categories
         html += '<div class="category-group"><h4>Kategori Pengeluaran</h4>';

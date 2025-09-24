@@ -16,6 +16,50 @@ export class GridRenderer {
                 day: 'numeric'
             });
         };
+        
+        // Set categories for category name resolution
+        this.categories = [];
+    }
+    
+    setCategoriesData(categories) {
+        this.categories = categories || [];
+    }
+    
+    getCategoryName(categoryId) {
+        // Handle empty/null/undefined categoryId
+        if (!categoryId && categoryId !== 0) {
+            return 'Tidak diketahui';
+        }
+        
+        // Try to find category by ID (handles both numeric and string IDs)
+        const category = this.categories.find(cat => cat.id === categoryId || cat.id == categoryId);
+        if (category) {
+            return category.name;
+        }
+        
+        // Check if it's a numeric string that could be an ID
+        if (typeof categoryId === 'string' && /^\d+$/.test(categoryId)) {
+            // Try to find by numeric conversion
+            const numericId = parseInt(categoryId);
+            const categoryByNum = this.categories.find(cat => cat.id === numericId);
+            if (categoryByNum) {
+                return categoryByNum.name;
+            }
+        }
+        
+        // For cat_ prefixed IDs, try direct lookup
+        if (typeof categoryId === 'string' && categoryId.startsWith('cat_')) {
+            // Already tried direct lookup above, fallback to ID
+            return categoryId;
+        }
+        
+        // Legacy string categories (non-numeric, non-prefixed strings)
+        if (typeof categoryId === 'string' && categoryId.length > 0 && !/^\d+$/.test(categoryId) && !categoryId.startsWith('cat_')) {
+            return categoryId;
+        }
+        
+        // Fallback
+        return categoryId?.toString() || 'Tidak diketahui';
     }
 
     // Render daily checklist grid (30 days x agenda items)
@@ -211,7 +255,7 @@ export class GridRenderer {
             
             html += '<tr>';
             html += `<td>${this.formatDate(transaction.date)}</td>`;
-            html += `<td><span class="category-tag">${transaction.category}</span></td>`;
+            html += `<td><span class="category-tag">${this.getCategoryName(transaction.category)}</span></td>`;
             html += `<td>${transaction.description}</td>`;
             html += `<td class="amount-cell ${transaction.income > 0 ? 'positive' : ''}">${transaction.income > 0 ? this.formatCurrency(transaction.income) : '-'}</td>`;
             html += `<td class="amount-cell ${transaction.outcome > 0 ? 'negative' : ''}">${transaction.outcome > 0 ? this.formatCurrency(transaction.outcome) : '-'}</td>`;
