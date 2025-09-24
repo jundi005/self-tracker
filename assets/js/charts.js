@@ -345,12 +345,12 @@ export class ChartManager {
                 actualSpending[transaction.category] += transaction.outcome;
             });
 
-        // Assume equal budget distribution among categories
-        const budgetPerCategory = settings.monthlyBudget / settings.categories.length;
+        // Use individual category limits
+        const spendingCategories = settings.categories.filter(cat => cat.type === 'spending');
         
-        const labels = settings.categories;
-        const budgetData = labels.map(() => budgetPerCategory);
-        const actualData = labels.map(category => actualSpending[category] || 0);
+        const labels = spendingCategories.map(cat => cat.name);
+        const budgetData = spendingCategories.map(cat => cat.limit);
+        const actualData = spendingCategories.map(cat => actualSpending[cat.name] || 0);
 
         this.charts.budget = new Chart(ctx, {
             type: 'bar',

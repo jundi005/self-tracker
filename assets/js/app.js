@@ -973,7 +973,9 @@ class SelfTrackerApp {
     }
 
     showAddTransactionModal() {
-        const formHtml = this.renderer.renderTransactionForm(null, this.data.settings.categories);
+        // Only show spending categories for regular transactions
+        const spendingCategories = this.data.settings.categories.filter(cat => cat.type === 'spending');
+        const formHtml = this.renderer.renderTransactionForm(null, spendingCategories);
         this.showModal('Tambah Transaksi', formHtml);
         
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
@@ -983,7 +985,9 @@ class SelfTrackerApp {
     }
     
     showEditTransactionModal(transaction) {
-        const formHtml = this.renderer.renderTransactionForm(transaction, this.data.settings.categories);
+        // Only show spending categories for regular transactions
+        const spendingCategories = this.data.settings.categories.filter(cat => cat.type === 'spending');
+        const formHtml = this.renderer.renderTransactionForm(transaction, spendingCategories);
         this.showModal('Edit Transaksi', formHtml);
         
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
@@ -1064,40 +1068,221 @@ class SelfTrackerApp {
 
     renderBudgetCategories() {
         const container = document.getElementById('budgetCategories');
-        let html = '';
+        let html = '<div class="categories-section">';
         
-        this.data.settings.categories.forEach((category, index) => {
+        // Spending Categories
+        html += '<div class="category-group"><h4>Kategori Pengeluaran</h4>';
+        const spendingCategories = this.data.settings.categories.filter(cat => cat.type === 'spending');
+        spendingCategories.forEach(category => {
             html += `
-                <div class="category-item">
-                    <input type="text" value="${category}" data-index="${index}">
-                    <button type="button" onclick="selfTracker.removeBudgetCategory(${index})">Hapus</button>
+                <div class="category-item" data-id="${category.id}">
+                    <div class="category-info">
+                        <input type="text" value="${category.name}" data-field="name" data-id="${category.id}" class="category-input">
+                        <input type="number" value="${category.limit}" data-field="limit" data-id="${category.id}" class="category-limit" min="0" step="1000" placeholder="Limit">
+                        <span class="category-type">Pengeluaran</span>
+                    </div>
+                    <div class="category-actions">
+                        <button type="button" class="btn-edit" onclick="selfTracker.showEditCategoryModal(${category.id})">Edit</button>
+                        <button type="button" class="btn-delete" onclick="selfTracker.removeBudgetCategory(${category.id})">Hapus</button>
+                    </div>
                 </div>
             `;
         });
+        html += '</div>';
+        
+        // Income Categories
+        html += '<div class="category-group"><h4>Kategori Pemasukan</h4>';
+        const incomeCategories = this.data.settings.categories.filter(cat => cat.type === 'income');
+        incomeCategories.forEach(category => {
+            html += `
+                <div class="category-item" data-id="${category.id}">
+                    <div class="category-info">
+                        <input type="text" value="${category.name}" data-field="name" data-id="${category.id}" class="category-input">
+                        <input type="number" value="${category.limit}" data-field="limit" data-id="${category.id}" class="category-limit" min="0" step="1000" placeholder="Limit">
+                        <span class="category-type">Pemasukan</span>
+                    </div>
+                    <div class="category-actions">
+                        <button type="button" class="btn-edit" onclick="selfTracker.showEditCategoryModal(${category.id})">Edit</button>
+                        <button type="button" class="btn-delete" onclick="selfTracker.removeBudgetCategory(${category.id})">Hapus</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div></div>';
         
         container.innerHTML = html;
         
-        // Bind input events
-        container.querySelectorAll('input').forEach(input => {
+        // Bind input events for real-time updates
+        container.querySelectorAll('.category-input, .category-limit').forEach(input => {
             input.addEventListener('change', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                this.data.settings.categories[index] = e.target.value;
+                const id = parseInt(e.target.dataset.id);
+                const field = e.target.dataset.field;
+                const value = field === 'limit' ? parseInt(e.target.value) || 0 : e.target.value.trim();
+                
+                const category = this.data.settings.categories.find(cat => cat.id === id);
+                if (category) {
+                    category[field] = value;
+                    this.saveSettings();
+                }
             });
         });
     }
 
     addBudgetCategory() {
-        const newCategory = prompt('Nama kategori baru:');
-        if (newCategory && newCategory.trim()) {
-            this.data.settings.categories.push(newCategory.trim());
+        this.showAddCategoryModal();
+    }
+    
+    showAddCategoryModal() {
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `
+            <h3>Tambah Kategori Baru</h3>
+            <form id="categoryForm">
+                <div class="form-group">
+                    <label>Nama Kategori</label>
+                    <input type="text" id="categoryName" class="input" required placeholder="Contoh: Makanan">
+                </div>
+                <div class="form-group">
+                    <label>Tipe</label>
+                    <select id="categoryType" class="select" required>
+                        <option value="">Pilih tipe</option>
+                        <option value="spending">Pengeluaran</option>
+                        <option value="income">Pemasukan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Limit (Rp)</label>
+                    <input type="number" id="categoryLimit" class="input" min="0" step="1000" required placeholder="0">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Tambah Kategori</button>
+                    <button type="button" class="btn btn-secondary" onclick="selfTracker.closeModal()">Batal</button>
+                </div>
+            </form>
+        `;
+        
+        document.getElementById('modal').classList.add('active');
+        
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.saveCategoryFromModal();
+        });
+    }
+    
+    showEditCategoryModal(categoryId) {
+        const category = this.data.settings.categories.find(cat => cat.id === categoryId);
+        if (!category) return;
+        
+        const modalBody = document.getElementById('modalBody');
+        modalBody.innerHTML = `
+            <h3>Edit Kategori</h3>
+            <form id="categoryForm">
+                <div class="form-group">
+                    <label>Nama Kategori</label>
+                    <input type="text" id="categoryName" class="input" required value="${category.name}">
+                </div>
+                <div class="form-group">
+                    <label>Tipe</label>
+                    <select id="categoryType" class="select" required>
+                        <option value="spending" ${category.type === 'spending' ? 'selected' : ''}>Pengeluaran</option>
+                        <option value="income" ${category.type === 'income' ? 'selected' : ''}>Pemasukan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Limit (Rp)</label>
+                    <input type="number" id="categoryLimit" class="input" min="0" step="1000" required value="${category.limit}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Kategori</button>
+                    <button type="button" class="btn btn-secondary" onclick="selfTracker.closeModal()">Batal</button>
+                </div>
+                <input type="hidden" id="categoryId" value="${category.id}">
+            </form>
+        `;
+        
+        document.getElementById('modal').classList.add('active');
+        
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.updateCategoryFromModal();
+        });
+    }
+    
+    async saveCategoryFromModal() {
+        const name = document.getElementById('categoryName').value.trim();
+        const type = document.getElementById('categoryType').value;
+        const limit = parseInt(document.getElementById('categoryLimit').value) || 0;
+        
+        if (!name || !type) {
+            alert('Harap isi semua field!');
+            return;
+        }
+        
+        // Check if category name already exists
+        const exists = this.data.settings.categories.some(cat => 
+            cat.name.toLowerCase() === name.toLowerCase() && cat.type === type
+        );
+        
+        if (exists) {
+            alert('Kategori dengan nama dan tipe yang sama sudah ada!');
+            return;
+        }
+        
+        const newCategory = {
+            id: Math.max(...this.data.settings.categories.map(cat => cat.id), 0) + 1,
+            name,
+            type,
+            limit
+        };
+        
+        this.data.settings.categories.push(newCategory);
+        await this.storage.set('settings', this.data.settings);
+        
+        this.closeModal();
+        this.renderBudgetCategories();
+        this.renderCurrentPage(); // Refresh current page to update dropdowns
+    }
+    
+    async updateCategoryFromModal() {
+        const id = parseInt(document.getElementById('categoryId').value);
+        const name = document.getElementById('categoryName').value.trim();
+        const type = document.getElementById('categoryType').value;
+        const limit = parseInt(document.getElementById('categoryLimit').value) || 0;
+        
+        if (!name || !type) {
+            alert('Harap isi semua field!');
+            return;
+        }
+        
+        // Check if category name already exists (excluding current category)
+        const exists = this.data.settings.categories.some(cat => 
+            cat.id !== id && cat.name.toLowerCase() === name.toLowerCase() && cat.type === type
+        );
+        
+        if (exists) {
+            alert('Kategori dengan nama dan tipe yang sama sudah ada!');
+            return;
+        }
+        
+        const categoryIndex = this.data.settings.categories.findIndex(cat => cat.id === id);
+        if (categoryIndex >= 0) {
+            this.data.settings.categories[categoryIndex] = { id, name, type, limit };
+            await this.storage.set('settings', this.data.settings);
+            
+            this.closeModal();
             this.renderBudgetCategories();
+            this.renderCurrentPage(); // Refresh current page to update dropdowns
         }
     }
     
-    removeBudgetCategory(index) {
+    removeBudgetCategory(categoryId) {
         if (confirm('Yakin ingin menghapus kategori ini?')) {
-            this.data.settings.categories.splice(index, 1);
-            this.renderBudgetCategories();
+            const categoryIndex = this.data.settings.categories.findIndex(cat => cat.id === categoryId);
+            if (categoryIndex >= 0) {
+                this.data.settings.categories.splice(categoryIndex, 1);
+                this.renderBudgetCategories();
+                this.renderCurrentPage(); // Refresh current page to update dropdowns
+                this.saveSettings();
+            }
         }
     }
 

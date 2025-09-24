@@ -348,7 +348,7 @@ export class GridRenderer {
                     <select id="transactionCategory" class="select" required>
                         <option value="">Pilih kategori</option>
                         ${categories.map(cat => 
-                            `<option value="${cat}" ${transaction && transaction.category === cat ? 'selected' : ''}>${cat}</option>`
+                            `<option value="${cat.name}" ${transaction && transaction.category === cat.name ? 'selected' : ''}>${cat.name}</option>`
                         ).join('')}
                     </select>
                 </div>
