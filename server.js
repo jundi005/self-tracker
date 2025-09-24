@@ -89,7 +89,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('  ✅ Business Tracker with profit/loss');
     console.log('  ✅ Dashboard with Chart.js visualizations');
     console.log('  ✅ Settings with Google Sheets integration');
-    console.log('  ✅ Offline-first with LocalStorage');
+    console.log('  ✅ Online-only with Google Sheets integration');
     console.log('  ✅ Mobile-first responsive design');
     console.log('');
     console.log('To deploy Google Apps Script backend:');
