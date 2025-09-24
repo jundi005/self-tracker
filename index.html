@@ -316,6 +316,9 @@
             console.log('Showing app page');
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
+            
+            // Always load the full app when showing app page
+            loadFullApp();
         }
         
         function bindLoginEvents() {
@@ -342,9 +345,6 @@
                     console.log('Login successful');
                     localStorage.setItem('selftracker_auth', 'true');
                     showApp();
-                    
-                    // Load the full app after successful login
-                    loadFullApp();
                 } else {
                     console.log('Login failed - invalid credentials');
                     errorDiv.textContent = 'Username atau password salah!';
@@ -364,11 +364,85 @@
         
         function loadFullApp() {
             console.log('Loading full application...');
-            // This will load the full app with modules after successful login
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = 'assets/js/app.js';
-            document.body.appendChild(script);
+            
+            // Add basic event handlers for navigation
+            setupBasicNavigation();
+        }
+        
+        function setupBasicNavigation() {
+            console.log('Setting up basic navigation...');
+            
+            // Bind logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    console.log('Logout clicked');
+                    logout();
+                });
+            }
+            
+            // Bind sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    console.log('Sidebar toggle clicked');
+                    sidebar.classList.toggle('active');
+                    mobileOverlay.classList.toggle('active');
+                });
+            }
+            
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', function() {
+                    console.log('Mobile overlay clicked');
+                    sidebar.classList.remove('active');
+                    mobileOverlay.classList.remove('active');
+                });
+            }
+            
+            // Bind navigation buttons
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const page = this.getAttribute('data-page');
+                    console.log('Navigation to page:', page);
+                    showPage(page);
+                });
+            });
+            
+            // Show default page
+            showPage('dashboard');
+        }
+        
+        function showPage(pageName) {
+            console.log('Showing page:', pageName);
+            
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+            
+            // Show selected page
+            const targetPage = document.getElementById(pageName + '-page');
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+            
+            // Update navigation
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => btn.classList.remove('active'));
+            
+            const activeBtn = document.querySelector(`[data-page="${pageName}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+            
+            // Close sidebar on mobile
+            const sidebar = document.getElementById('sidebar');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            sidebar.classList.remove('active');
+            mobileOverlay.classList.remove('active');
         }
         
         // Initialize when DOM is loaded
