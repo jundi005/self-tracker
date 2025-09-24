@@ -22,7 +22,15 @@ class SelfTrackerApp {
             settings: {
                 activeMonth: new Date().toISOString().slice(0, 7),
                 monthlyBudget: 5000000,
-                categories: ['Makanan', 'Transport', 'Hiburan', 'Belanja', 'Tagihan'],
+                categories: [
+                    { id: 1, name: 'Makanan', type: 'spending', limit: 1500000 },
+                    { id: 2, name: 'Transport', type: 'spending', limit: 800000 },
+                    { id: 3, name: 'Hiburan', type: 'spending', limit: 500000 },
+                    { id: 4, name: 'Belanja', type: 'spending', limit: 700000 },
+                    { id: 5, name: 'Tagihan', type: 'spending', limit: 1000000 },
+                    { id: 6, name: 'Gaji', type: 'income', limit: 8000000 },
+                    { id: 7, name: 'Bonus', type: 'income', limit: 2000000 }
+                ],
                 storageMode: 'offline',
                 apiToken: '',
                 apiBase: ''
