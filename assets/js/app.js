@@ -1,12 +1,10 @@
 // Main Application Controller
-import { StorageManager } from './storage.js';
 import { APIClient } from './api.js';
 import { ChartManager } from './charts.js';
 import { GridRenderer } from './renderers.js';
 
 class SelfTrackerApp {
     constructor() {
-        this.storage = new StorageManager();
         this.api = new APIClient();
         this.charts = new ChartManager();
         this.renderer = new GridRenderer();
@@ -226,23 +224,68 @@ class SelfTrackerApp {
     }
 
     async loadSettings() {
-        const settings = await this.storage.get('settings');
-        if (settings) {
-            this.data.settings = { ...this.data.settings, ...settings };
+        // First, load API settings from localStorage to persist across reloads
+        const savedApiBase = localStorage.getItem('selftracker_apiBase');
+        const savedApiToken = localStorage.getItem('selftracker_apiToken');
+        
+        if (savedApiBase) {
+            this.data.settings.apiBase = savedApiBase;
         }
-        await this.storage.set('settings', this.data.settings);
+        if (savedApiToken) {
+            this.data.settings.apiToken = savedApiToken;
+        }
+        
+        // Try to load settings from API if configured
+        if (this.data.settings.apiBase) {
+            try {
+                this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
+                const remoteData = await this.api.pull();
+                if (remoteData && remoteData.settings) {
+                    this.data.settings = { ...this.data.settings, ...remoteData.settings };
+                }
+            } catch (error) {
+                console.warn('Failed to load settings from API:', error);
+                // Continue with default settings
+            }
+        }
     }
 
     async initializeData() {
-        // Load data from storage
-        for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
-            const data = await this.storage.get(key);
-            if (data) {
-                this.data[key] = data;
-            } else {
-                // Initialize with sample data
+        // Try to load data from API if configured
+        if (this.data.settings.apiBase) {
+            try {
+                this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
+                const remoteData = await this.api.pull();
+                
+                if (remoteData) {
+                    // Load data from API
+                    for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
+                        if (remoteData[key]) {
+                            this.data[key] = remoteData[key];
+                        } else {
+                            // Initialize with sample data if API has no data for this key
+                            this.data[key] = this.getSampleData(key);
+                        }
+                    }
+                } else {
+                    // Initialize with sample data if API returns null
+                    for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
+                        this.data[key] = this.getSampleData(key);
+                    }
+                    // Push initial data to API
+                    await this.api.push(this.data);
+                }
+            } catch (error) {
+                console.warn('Failed to load data from API, using sample data:', error);
+                // Initialize with sample data if API fails
+                for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
+                    this.data[key] = this.getSampleData(key);
+                }
+            }
+        } else {
+            // Initialize with sample data if API is not configured
+            for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
                 this.data[key] = this.getSampleData(key);
-                await this.storage.set(key, this.data[key]);
             }
         }
         
@@ -281,7 +324,6 @@ class SelfTrackerApp {
             
             // Update settings with new category format
             settings.categories = newCategories;
-            await this.storage.set('settings', settings);
             
             // Migrate transaction category references
             await this.migrateTransactionCategories(categoryMapping);
@@ -338,10 +380,14 @@ class SelfTrackerApp {
         });
         
         if (migrated) {
-            // Save migrated data
-            await this.storage.set('finance', this.data.finance);
-            await this.storage.set('business', this.data.business);
-            await this.storage.set('settings', this.data.settings);
+            // Save migrated data to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
+                try {
+                    await this.api.push(this.data);
+                } catch (error) {
+                    console.warn('Failed to push migrated data to API:', error);
+                }
+            }
         }
     }
 
@@ -407,9 +453,9 @@ class SelfTrackerApp {
             });
         });
 
-        // Sync button
+        // Refresh button
         document.getElementById('syncBtn').addEventListener('click', () => {
-            this.syncData();
+            this.refreshData();
         });
 
         // Logout button
@@ -617,7 +663,6 @@ class SelfTrackerApp {
 
     renderSettingsPage() {
         document.getElementById('activeMonth').value = this.data.settings.activeMonth;
-        document.getElementById('storageMode').value = this.data.settings.storageMode;
         document.getElementById('monthlyBudget').value = this.data.settings.monthlyBudget;
         document.getElementById('apiToken').value = this.data.settings.apiToken;
         document.getElementById('apiBase').value = this.data.settings.apiBase;
@@ -638,7 +683,7 @@ class SelfTrackerApp {
     // Connection and sync functions
     async checkConnection() {
         try {
-            if (this.data.settings.storageMode === 'online' && this.data.settings.apiBase) {
+            if (this.data.settings.apiBase) {
                 this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
                 const response = await this.api.health();
                 this.isOnline = response.success;
@@ -664,46 +709,42 @@ class SelfTrackerApp {
         }
     }
 
-    async syncData() {
-        // Check if API base is configured
+    async refreshData() {
+        // Refresh data from API - since we're always online now
         if (!this.data.settings.apiBase || this.data.settings.apiBase.trim() === '') {
             alert('Harap konfigurasi Google Apps Script URL di pengaturan terlebih dahulu!');
             return;
         }
 
         if (!this.isOnline) {
-            alert('Tidak dapat sinkronisasi. Koneksi offline atau API tidak tersedia.');
+            alert('Tidak dapat refresh data. API tidak tersedia.');
             return;
         }
 
         try {
             const syncBtn = document.getElementById('syncBtn');
             syncBtn.disabled = true;
-            syncBtn.innerHTML = '<span class="spinner"></span> Sync...';
+            syncBtn.innerHTML = '<span class="spinner"></span> Refresh...';
 
-            // Push local changes
-            await this.api.push(this.data);
-            
-            // Pull remote changes
+            // Pull latest data from API
             const remoteData = await this.api.pull();
             if (remoteData) {
                 this.data = { ...this.data, ...remoteData };
-                await this.storage.setAll(this.data);
             }
 
             this.renderCurrentPage();
-            alert('Sinkronisasi berhasil!');
+            alert('Data berhasil direfresh!');
         } catch (error) {
-            console.warn('Sync failed:', error);
+            console.warn('Refresh failed:', error);
             if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-                alert('Sinkronisasi gagal: Tidak dapat terhubung ke server. Pastikan URL Google Apps Script sudah benar dan dapat diakses.');
+                alert('Refresh gagal: Tidak dapat terhubung ke server. Pastikan URL Google Apps Script sudah benar dan dapat diakses.');
             } else {
-                alert('Sinkronisasi gagal: ' + error.message);
+                alert('Refresh gagal: ' + error.message);
             }
         } finally {
             const syncBtn = document.getElementById('syncBtn');
             syncBtn.disabled = false;
-            syncBtn.innerHTML = 'Sync';
+            syncBtn.innerHTML = 'Refresh';
         }
     }
 
@@ -1136,7 +1177,7 @@ class SelfTrackerApp {
     async saveSettings() {
         const newSettings = {
             activeMonth: document.getElementById('activeMonth').value,
-            storageMode: document.getElementById('storageMode').value,
+            storageMode: 'online', // Always online mode
             monthlyBudget: parseInt(document.getElementById('monthlyBudget').value) || 0,
             apiToken: document.getElementById('apiToken').value,
             apiBase: document.getElementById('apiBase').value,
@@ -1144,10 +1185,23 @@ class SelfTrackerApp {
         };
         
         this.data.settings = { ...this.data.settings, ...newSettings };
-        await this.storage.set('settings', this.data.settings);
         
-        // Update API configuration
-        this.api.configure(newSettings.apiBase, newSettings.apiToken);
+        // Save API settings to localStorage for persistence across reloads
+        localStorage.setItem('selftracker_apiBase', newSettings.apiBase || '');
+        localStorage.setItem('selftracker_apiToken', newSettings.apiToken || '');
+        
+        // Save settings to API if configured
+        if (newSettings.apiBase) {
+            try {
+                await this.api.push(this.data);
+                alert('Pengaturan berhasil disimpan!');
+            } catch (error) {
+                console.warn('Failed to save settings to API:', error);
+                alert('Pengaturan disimpan, tapi gagal sync ke server. Pastikan URL Google Apps Script sudah benar.');
+            }
+        } else {
+            alert('Pengaturan disimpan. Harap konfigurasi URL Google Apps Script untuk sync data.');
+        }
         
         // Check connection after updating settings
         await this.checkConnection();
@@ -1354,7 +1408,15 @@ class SelfTrackerApp {
         };
         
         this.data.settings.categories.push(newCategory);
-        await this.storage.set('settings', this.data.settings);
+        
+        // Push to API if configured
+        if (this.data.settings.apiBase && this.api.isConfigured()) {
+            try {
+                await this.api.push(this.data);
+            } catch (error) {
+                console.warn('Failed to save category to API:', error);
+            }
+        }
         
         this.closeModal();
         this.renderBudgetCategories();
@@ -1385,7 +1447,15 @@ class SelfTrackerApp {
         const categoryIndex = this.data.settings.categories.findIndex(cat => cat.id === id);
         if (categoryIndex >= 0) {
             this.data.settings.categories[categoryIndex] = { id, name, type, limit };
-            await this.storage.set('settings', this.data.settings);
+            
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
+                try {
+                    await this.api.push(this.data);
+                } catch (error) {
+                    console.warn('Failed to update category to API:', error);
+                }
+            }
             
             this.closeModal();
             this.renderBudgetCategories();
@@ -1406,7 +1476,11 @@ class SelfTrackerApp {
     }
 
     exportData() {
-        const exportData = this.storage.exportData();
+        const exportData = {
+            data: this.data,
+            timestamp: new Date().toISOString(),
+            version: '2.0'
+        };
         const dataStr = JSON.stringify(exportData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         
@@ -1429,14 +1503,25 @@ class SelfTrackerApp {
                 const text = await file.text();
                 const importData = JSON.parse(text);
                 
-                const result = await this.storage.importData(importData);
-                if (result.success) {
-                    // Reload data
-                    await this.initializeData();
+                if (importData.data) {
+                    this.data = { ...this.data, ...importData.data };
+                    
+                    // Push imported data to API if configured
+                    if (this.data.settings.apiBase && this.api.isConfigured()) {
+                        try {
+                            await this.api.push(this.data);
+                            alert('Import berhasil dan data telah disinkronkan ke Google Sheets!');
+                        } catch (error) {
+                            console.warn('Failed to push imported data to API:', error);
+                            alert('Data berhasil diimport, tapi gagal sinkronisasi ke Google Sheets.');
+                        }
+                    } else {
+                        alert('Data berhasil diimport. Konfigurasi Google Apps Script URL untuk sinkronisasi.');
+                    }
+                    
                     this.renderCurrentPage();
-                    alert(`Import berhasil! ${result.imported} tipe data diimport.`);
                 } else {
-                    throw new Error(result.error);
+                    throw new Error('Format file import tidak valid');
                 }
             } catch (error) {
                 alert('Import gagal: ' + error.message);
@@ -1460,13 +1545,13 @@ class SelfTrackerApp {
         };
         
         this.data.daily.push(newItem);
-        await this.storage.set('daily', this.data.daily);
         
-        if (this.isOnline) {
+        // Push to API if configured
+        if (this.data.settings.apiBase && this.api.isConfigured()) {
             try {
                 await this.api.create('daily', newItem);
             } catch (error) {
-                console.warn('Failed to sync new daily item:', error);
+                console.warn('Failed to save new daily item:', error);
             }
         }
         
@@ -1484,13 +1569,12 @@ class SelfTrackerApp {
             this.data.daily[itemIndex].name = name;
             this.data.daily[itemIndex].updated_at = new Date().toISOString();
             
-            await this.storage.set('daily', this.data.daily);
-            
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.update('daily', id, { name });
                 } catch (error) {
-                    console.warn('Failed to sync daily item update:', error);
+                    console.warn('Failed to update daily item:', error);
                 }
             }
         }
@@ -1503,13 +1587,13 @@ class SelfTrackerApp {
         const itemIndex = this.data.daily.findIndex(item => item.id === id);
         if (itemIndex >= 0) {
             this.data.daily.splice(itemIndex, 1);
-            await this.storage.set('daily', this.data.daily);
             
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.delete('daily', id);
                 } catch (error) {
-                    console.warn('Failed to sync daily item deletion:', error);
+                    console.warn('Failed to delete daily item:', error);
                 }
             }
         }
@@ -1529,13 +1613,13 @@ class SelfTrackerApp {
             }
             
             item.updated_at = new Date().toISOString();
-            await this.storage.set('daily', this.data.daily);
             
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.update('daily', itemId, { days: item.days });
                 } catch (error) {
-                    console.warn('Failed to sync daily checkbox update:', error);
+                    console.warn('Failed to update daily checkbox:', error);
                 }
             }
         }
@@ -1553,13 +1637,13 @@ class SelfTrackerApp {
             }
             
             item.updated_at = new Date().toISOString();
-            await this.storage.set('weekly', this.data.weekly);
             
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.update('weekly', itemId, { weeks: item.weeks });
                 } catch (error) {
-                    console.warn('Failed to sync weekly checkbox update:', error);
+                    console.warn('Failed to update weekly checkbox:', error);
                 }
             }
         }
@@ -1587,13 +1671,13 @@ class SelfTrackerApp {
         };
         
         this.data.finance.push(newTransaction);
-        await this.storage.set('finance', this.data.finance);
         
-        if (this.isOnline) {
+        // Push to API if configured
+        if (this.data.settings.apiBase && this.api.isConfigured()) {
             try {
                 await this.api.create('finance', newTransaction);
             } catch (error) {
-                console.warn('Failed to sync new transaction:', error);
+                console.warn('Failed to save new transaction:', error);
             }
         }
         
@@ -1623,13 +1707,12 @@ class SelfTrackerApp {
                 updated_at: new Date().toISOString()
             };
             
-            await this.storage.set('finance', this.data.finance);
-            
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.update('finance', id, { date, category, description, income, outcome });
                 } catch (error) {
-                    console.warn('Failed to sync transaction update:', error);
+                    console.warn('Failed to update transaction:', error);
                 }
             }
         }
@@ -1642,13 +1725,13 @@ class SelfTrackerApp {
         const transactionIndex = this.data.finance.findIndex(t => t.id === id);
         if (transactionIndex >= 0) {
             this.data.finance.splice(transactionIndex, 1);
-            await this.storage.set('finance', this.data.finance);
             
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.delete('finance', id);
                 } catch (error) {
-                    console.warn('Failed to sync transaction deletion:', error);
+                    console.warn('Failed to delete transaction:', error);
                 }
             }
         }
@@ -1678,13 +1761,13 @@ class SelfTrackerApp {
         };
         
         this.data.business.push(newTransaction);
-        await this.storage.set('business', this.data.business);
         
-        if (this.isOnline) {
+        // Push to API if configured
+        if (this.data.settings.apiBase && this.api.isConfigured()) {
             try {
                 await this.api.create('business', newTransaction);
             } catch (error) {
-                console.warn('Failed to sync new business transaction:', error);
+                console.warn('Failed to save new business transaction:', error);
             }
         }
         
@@ -1714,13 +1797,12 @@ class SelfTrackerApp {
                 updated_at: new Date().toISOString()
             };
             
-            await this.storage.set('business', this.data.business);
-            
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.update('business', id, { date, type, income, outcome, note });
                 } catch (error) {
-                    console.warn('Failed to sync business transaction update:', error);
+                    console.warn('Failed to update business transaction:', error);
                 }
             }
         }
@@ -1733,13 +1815,13 @@ class SelfTrackerApp {
         const transactionIndex = this.data.business.findIndex(t => t.id === id);
         if (transactionIndex >= 0) {
             this.data.business.splice(transactionIndex, 1);
-            await this.storage.set('business', this.data.business);
             
-            if (this.isOnline) {
+            // Push to API if configured
+            if (this.data.settings.apiBase && this.api.isConfigured()) {
                 try {
                     await this.api.delete('business', id);
                 } catch (error) {
-                    console.warn('Failed to sync business transaction deletion:', error);
+                    console.warn('Failed to delete business transaction:', error);
                 }
             }
         }
