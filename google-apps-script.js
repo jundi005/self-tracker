@@ -26,23 +26,7 @@ function doPost(e) {
 
 function doGet(e) {
   try {
-    // Enable CORS
-    const response = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
-    };
-
-    // Handle preflight requests
-    if (e.request && e.request.method === 'OPTIONS') {
-      return ContentService
-        .createTextOutput('')
-        .setMimeType(ContentService.MimeType.JSON)
-        .setHeaders(response.headers);
-    }
+    // Google Apps Script handles CORS automatically when deployed with 'Anyone' access
 
     // Authentication handled by Google Apps Script deployment settings
     // Deploy with 'Execute as: Me' and 'Who has access: Anyone'
@@ -101,16 +85,13 @@ function doGet(e) {
         result = { error: 'Invalid action: ' + action };
     }
 
-    return createResponse(result, 200, response.headers);
+    return createResponse(result, 200);
 
   } catch (error) {
     console.error('Error in main handler:', error);
     return createResponse({ 
       error: 'Internal server error: ' + error.message 
-    }, 500, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    });
+    }, 500);
   }
 }
 
@@ -140,17 +121,9 @@ function getOrCreateSpreadsheet() {
 
 // Create HTTP response
 function createResponse(data, statusCode = 200, headers = {}) {
-  const response = ContentService
+  return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-    
-  if (headers) {
-    Object.keys(headers).forEach(key => {
-      response.setHeader(key, headers[key]);
-    });
-  }
-  
-  return response;
 }
 
 // Health check endpoint
