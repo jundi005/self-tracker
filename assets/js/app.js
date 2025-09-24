@@ -150,6 +150,8 @@ class SelfTrackerApp {
     }
 
     logout() {
+        // Bersihkan auto refresh interval sebelum logout
+        this.cleanup();
         // Use the global logout function from index.html
         if (window.logout) {
             window.logout();
@@ -446,17 +448,17 @@ class SelfTrackerApp {
             this.toggleSidebar();
         });
 
-        // Navigation events
+        // Navigation events dengan auto-hide sidebar
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.switchPage(e.target.dataset.page);
+                // Auto-hide sidebar setelah navigasi (untuk mobile dan desktop)
+                this.autoHideSidebar();
             });
         });
 
-        // Refresh button
-        document.getElementById('syncBtn').addEventListener('click', () => {
-            this.refreshData();
-        });
+        // Auto-refresh setup (menggantikan tombol refresh manual)
+        this.setupAutoRefresh();
 
         // Logout button
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -709,17 +711,40 @@ class SelfTrackerApp {
         }
     }
 
-    async refreshData() {
-        // Refresh data from API - since we're always online now
+    // Setup auto-refresh dengan interval
+    setupAutoRefresh() {
+        // Cleanup existing intervals untuk mencegah duplikasi
+        this.cleanup();
+        
+        // Auto refresh data setiap 30 detik
+        this.autoRefreshInterval = setInterval(() => {
+            this.refreshData(true); // true = silent refresh
+        }, 30000);
+        
+        // Initial refresh setelah 5 detik
+        this.initialRefreshTimeout = setTimeout(() => {
+            this.refreshData(true);
+        }, 5000);
+    }
+
+    async refreshData(silent = false) {
+        // Refresh data from API
         if (!this.data.settings.apiBase || this.data.settings.apiBase.trim() === '') {
-            alert('Harap konfigurasi Google Apps Script URL di pengaturan terlebih dahulu!');
+            if (!silent) {
+                alert('Harap konfigurasi Google Apps Script URL di pengaturan terlebih dahulu!');
+            }
             return;
         }
 
         try {
-            const syncBtn = document.getElementById('syncBtn');
-            syncBtn.disabled = true;
-            syncBtn.innerHTML = '<span class="spinner"></span> Refresh...';
+            if (!silent) {
+                // Hanya tampilkan loading jika bukan silent refresh
+                const syncBtn = document.getElementById('syncBtn');
+                if (syncBtn) {
+                    syncBtn.disabled = true;
+                    syncBtn.innerHTML = '<span class="spinner"></span> Refresh...';
+                }
+            }
 
             // Check connection first
             await this.checkConnection();
@@ -744,15 +769,73 @@ class SelfTrackerApp {
             alert('Data berhasil direfresh!');
         } catch (error) {
             console.warn('Refresh failed:', error);
-            if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
-                alert('Refresh gagal: Tidak dapat terhubung ke server. Pastikan URL Google Apps Script sudah benar dan dapat diakses.');
+            if (!silent) {
+                if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+                    alert('Refresh gagal: Tidak dapat terhubung ke server. Pastikan URL Google Apps Script sudah benar dan dapat diakses.');
+                } else {
+                    alert('Refresh gagal: ' + error.message);
+                }
             } else {
-                alert('Refresh gagal: ' + error.message);
+                // Silent refresh failed - log to console untuk debugging
+                console.warn('Auto-refresh failed:', error.message);
+                // Update status indicator untuk memberikan feedback visual
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Sync Error';
+                    statusElement.className = 'status-offline';
+                    // Reset status setelah 10 detik
+                    setTimeout(() => {
+                        statusElement.textContent = 'Auto-Sync';
+                        statusElement.className = 'status-online';
+                    }, 10000);
+                }
             }
         } finally {
-            const syncBtn = document.getElementById('syncBtn');
-            syncBtn.disabled = false;
-            syncBtn.innerHTML = 'Refresh';
+            if (!silent) {
+                const syncBtn = document.getElementById('syncBtn');
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = 'Refresh';
+                }
+            }
+        }
+    }
+
+    // Auto-hide sidebar setelah navigasi
+    autoHideSidebar() {
+        const app = document.getElementById('app');
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('mobileOverlay');
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // Untuk mobile: tutup sidebar
+            if (sidebar.classList.contains('show-mobile')) {
+                sidebar.classList.remove('show-mobile');
+                toggle.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        } else {
+            // Untuk desktop: sembunyikan sidebar jika sedang terbuka
+            if (!sidebar.classList.contains('hidden')) {
+                app.classList.add('sidebar-hidden');
+                sidebar.classList.add('hidden');
+                toggle.classList.add('active');
+            }
+        }
+    }
+
+    // Cleanup function untuk auto refresh dan timeouts
+    cleanup() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
+        }
+        if (this.initialRefreshTimeout) {
+            clearTimeout(this.initialRefreshTimeout);
+            this.initialRefreshTimeout = null;
         }
     }
 

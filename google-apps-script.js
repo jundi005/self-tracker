@@ -96,13 +96,14 @@ function doGet(e) {
 }
 
 // Authentication check
-// Auto-create spreadsheet if needed
+// Get or create single spreadsheet (prevents multiple backups)
 function getOrCreateSpreadsheet() {
   try {
     const properties = PropertiesService.getScriptProperties();
     let spreadsheetId = properties.getProperty('SPREADSHEET_ID');
     
-    if (!spreadsheetId || CONFIG.SPREADSHEET_ID === 'AUTO_CREATE') {
+    // Only create new spreadsheet if no ID is stored
+    if (!spreadsheetId) {
       // Create new spreadsheet
       const spreadsheet = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
       spreadsheetId = spreadsheet.getId();
@@ -111,7 +112,40 @@ function getOrCreateSpreadsheet() {
       console.log('Created new spreadsheet:', CONFIG.SPREADSHEET_NAME, 'ID:', spreadsheetId);
       return spreadsheet;
     } else {
-      return SpreadsheetApp.openById(spreadsheetId);
+      try {
+        // Try to open existing spreadsheet
+        return SpreadsheetApp.openById(spreadsheetId);
+      } catch (openError) {
+        console.warn('Error accessing stored spreadsheet:', openError);
+        
+        // Check if it's a permanent error (not found/access denied) vs transient error
+        const errorMsg = openError.toString().toLowerCase();
+        const isPermanentError = errorMsg.includes('not found') || 
+                                errorMsg.includes('access denied') || 
+                                errorMsg.includes('permission denied') ||
+                                errorMsg.includes('does not exist');
+        
+        if (isPermanentError) {
+          console.log('Permanent error detected, creating replacement spreadsheet');
+          // Only create new spreadsheet for permanent errors
+          const spreadsheet = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
+          const newSpreadsheetId = spreadsheet.getId();
+          properties.setProperty('SPREADSHEET_ID', newSpreadsheetId);
+          
+          console.log('Created replacement spreadsheet:', CONFIG.SPREADSHEET_NAME, 'ID:', newSpreadsheetId);
+          return spreadsheet;
+        } else {
+          // For transient errors, retry once after brief delay
+          console.log('Transient error detected, retrying...');
+          Utilities.sleep(1000); // Wait 1 second
+          try {
+            return SpreadsheetApp.openById(spreadsheetId);
+          } catch (retryError) {
+            console.error('Retry failed, re-throwing original error:', retryError);
+            throw openError; // Throw original error to maintain error context
+          }
+        }
+      }
     }
   } catch (error) {
     console.error('Error getting/creating spreadsheet:', error);
