@@ -72,6 +72,12 @@ class SelfTrackerApp {
 
     bindLoginEvents() {
         const loginForm = document.getElementById('loginForm');
+        console.log('Binding login events...', loginForm);
+        
+        if (!loginForm) {
+            console.error('Login form not found!');
+            return;
+        }
         
         // Remove any existing event listeners to avoid conflicts
         const newForm = loginForm.cloneNode(true);
@@ -81,6 +87,7 @@ class SelfTrackerApp {
         newForm.addEventListener('submit', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('Login form submitted');
             this.handleLogin();
             return false;
         });
@@ -91,19 +98,31 @@ class SelfTrackerApp {
             submitBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('Login button clicked');
                 this.handleLogin();
                 return false;
             });
         }
+        
+        console.log('Login events bound successfully');
     }
 
     async handleLogin() {
+        console.log('handleLogin called');
+        
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('loginError');
         
+        console.log('Username:', username, 'Password length:', password.length);
+        
+        // Clear previous error
+        errorDiv.classList.add('hidden');
+        errorDiv.textContent = '';
+        
         // Check credentials
         if (username === 'jundi' && password === 'jundi123') {
+            console.log('Login successful');
             localStorage.setItem('selftracker_auth', 'true');
             this.isAuthenticated = true;
             
@@ -114,6 +133,7 @@ class SelfTrackerApp {
             this.renderCurrentPage();
             await this.checkConnection();
         } else {
+            console.log('Login failed - invalid credentials');
             errorDiv.textContent = 'Username atau password salah!';
             errorDiv.classList.remove('hidden');
         }
