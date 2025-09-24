@@ -12,7 +12,7 @@ class SelfTrackerApp {
         this.renderer = new GridRenderer();
         
         this.currentPage = 'dashboard';
-        this.isOnline = true;
+        this.isOnline = false;
         this.data = {
             daily: [],
             weekly: [],
@@ -128,8 +128,12 @@ class SelfTrackerApp {
         errorDiv.classList.add('hidden');
         errorDiv.textContent = '';
         
+        // Get stored credentials or use defaults (for demo purposes)
+        const storedUsername = localStorage.getItem('selftracker_username') || 'demo';
+        const storedPassword = localStorage.getItem('selftracker_password') || 'demo123';
+        
         // Check credentials
-        if (username === 'jundi' && password === 'jundi123') {
+        if (username === storedUsername && password === storedPassword) {
             console.log('Login successful');
             localStorage.setItem('selftracker_auth', 'true');
             this.isAuthenticated = true;
@@ -240,6 +244,104 @@ class SelfTrackerApp {
                 this.data[key] = this.getSampleData(key);
                 await this.storage.set(key, this.data[key]);
             }
+        }
+        
+        // Run migration for legacy category format
+        await this.migrateLegacyCategories();
+    }
+
+    async migrateLegacyCategories() {
+        // Check if categories are in legacy string format
+        const settings = this.data.settings;
+        
+        if (!settings.categories || settings.categories.length === 0) {
+            return; // No categories to migrate
+        }
+
+        // Check if first category is a string (legacy format)
+        const firstCategory = settings.categories[0];
+        if (typeof firstCategory === 'string') {
+            console.log('Migrating legacy string categories to object format...');
+            
+            // Create category mapping for transaction migration
+            const categoryMapping = new Map();
+            
+            // Convert string categories to object format
+            const newCategories = settings.categories.map((categoryName, index) => {
+                const categoryId = 'cat_' + Date.now() + '_' + index;
+                categoryMapping.set(categoryName, categoryId);
+                
+                return {
+                    id: categoryId,
+                    name: categoryName,
+                    type: 'spending', // Default to spending for legacy categories
+                    limit: 1000000 // Default limit of 1M
+                };
+            });
+            
+            // Update settings with new category format
+            settings.categories = newCategories;
+            await this.storage.set('settings', settings);
+            
+            // Migrate transaction category references
+            await this.migrateTransactionCategories(categoryMapping);
+            
+            console.log('Category migration completed.');
+        }
+    }
+
+    async migrateTransactionCategories(categoryMapping) {
+        // Migrate finance transactions
+        let migrated = false;
+        
+        this.data.finance.forEach(transaction => {
+            if (transaction.category && typeof transaction.category === 'string') {
+                const newCategoryId = categoryMapping.get(transaction.category);
+                if (newCategoryId) {
+                    transaction.category = newCategoryId;
+                    migrated = true;
+                } else {
+                    // Create fallback category for unmapped categories
+                    const fallbackId = 'cat_fallback_' + Date.now();
+                    this.data.settings.categories.push({
+                        id: fallbackId,
+                        name: transaction.category,
+                        type: 'spending',
+                        limit: 1000000
+                    });
+                    transaction.category = fallbackId;
+                    migrated = true;
+                }
+            }
+        });
+        
+        // Migrate business transactions
+        this.data.business.forEach(transaction => {
+            if (transaction.category && typeof transaction.category === 'string') {
+                const newCategoryId = categoryMapping.get(transaction.category);
+                if (newCategoryId) {
+                    transaction.category = newCategoryId;
+                    migrated = true;
+                } else {
+                    // Create fallback category for unmapped categories
+                    const fallbackId = 'cat_fallback_' + Date.now();
+                    this.data.settings.categories.push({
+                        id: fallbackId,
+                        name: transaction.category,
+                        type: 'spending',
+                        limit: 1000000
+                    });
+                    transaction.category = fallbackId;
+                    migrated = true;
+                }
+            }
+        });
+        
+        if (migrated) {
+            // Save migrated data
+            await this.storage.set('finance', this.data.finance);
+            await this.storage.set('business', this.data.business);
+            await this.storage.set('settings', this.data.settings);
         }
     }
 
