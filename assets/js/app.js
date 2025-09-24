@@ -31,7 +31,7 @@ class SelfTrackerApp {
                     { id: 6, name: 'Gaji', type: 'income', limit: 8000000 },
                     { id: 7, name: 'Bonus', type: 'income', limit: 2000000 }
                 ],
-                storageMode: 'offline',
+                storageMode: 'online',
                 apiToken: '',
                 apiBase: ''
             }
@@ -129,8 +129,8 @@ class SelfTrackerApp {
         errorDiv.textContent = '';
         
         // Get stored credentials or use defaults (for demo purposes)
-        const storedUsername = localStorage.getItem('selftracker_username') || 'demo';
-        const storedPassword = localStorage.getItem('selftracker_password') || 'demo123';
+        const storedUsername = localStorage.getItem('selftracker_username') || 'jundi';
+        const storedPassword = localStorage.getItem('selftracker_password') || 'jundi123';
         
         // Check credentials
         if (username === storedUsername && password === storedPassword) {
