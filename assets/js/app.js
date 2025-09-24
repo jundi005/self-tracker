@@ -1253,8 +1253,187 @@ class SelfTrackerApp {
         }
     }
 
-    // Similar CRUD operations for Weekly, Monthly, Finance, and Business
-    // (implementing the core ones - others follow same pattern)
+    // Finance Transaction CRUD operations
+    async addTransaction() {
+        const date = document.getElementById('transactionDate').value;
+        const category = document.getElementById('transactionCategory').value;
+        const description = document.getElementById('transactionDescription').value.trim();
+        const income = parseInt(document.getElementById('transactionIncome').value) || 0;
+        const outcome = parseInt(document.getElementById('transactionOutcome').value) || 0;
+        
+        if (!date || !category || !description) return;
+        
+        const newTransaction = {
+            id: Math.max(...this.data.finance.map(t => t.id), 0) + 1,
+            date,
+            category,
+            description,
+            income,
+            outcome,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        this.data.finance.push(newTransaction);
+        await this.storage.set('finance', this.data.finance);
+        
+        if (this.isOnline) {
+            try {
+                await this.api.create('finance', newTransaction);
+            } catch (error) {
+                console.warn('Failed to sync new transaction:', error);
+            }
+        }
+        
+        this.closeModal();
+        this.renderCurrentPage();
+    }
+    
+    async updateTransaction() {
+        const id = parseInt(document.getElementById('transactionId').value);
+        const date = document.getElementById('transactionDate').value;
+        const category = document.getElementById('transactionCategory').value;
+        const description = document.getElementById('transactionDescription').value.trim();
+        const income = parseInt(document.getElementById('transactionIncome').value) || 0;
+        const outcome = parseInt(document.getElementById('transactionOutcome').value) || 0;
+        
+        if (!date || !category || !description) return;
+        
+        const transactionIndex = this.data.finance.findIndex(t => t.id === id);
+        if (transactionIndex >= 0) {
+            this.data.finance[transactionIndex] = {
+                ...this.data.finance[transactionIndex],
+                date,
+                category,
+                description,
+                income,
+                outcome,
+                updated_at: new Date().toISOString()
+            };
+            
+            await this.storage.set('finance', this.data.finance);
+            
+            if (this.isOnline) {
+                try {
+                    await this.api.update('finance', id, { date, category, description, income, outcome });
+                } catch (error) {
+                    console.warn('Failed to sync transaction update:', error);
+                }
+            }
+        }
+        
+        this.closeModal();
+        this.renderCurrentPage();
+    }
+    
+    async deleteTransaction(id) {
+        const transactionIndex = this.data.finance.findIndex(t => t.id === id);
+        if (transactionIndex >= 0) {
+            this.data.finance.splice(transactionIndex, 1);
+            await this.storage.set('finance', this.data.finance);
+            
+            if (this.isOnline) {
+                try {
+                    await this.api.delete('finance', id);
+                } catch (error) {
+                    console.warn('Failed to sync transaction deletion:', error);
+                }
+            }
+        }
+        
+        this.renderCurrentPage();
+    }
+    
+    // Business Transaction CRUD operations
+    async addBusinessTransaction() {
+        const date = document.getElementById('businessDate').value;
+        const type = document.getElementById('businessType').value.trim();
+        const income = parseInt(document.getElementById('businessIncome').value) || 0;
+        const outcome = parseInt(document.getElementById('businessOutcome').value) || 0;
+        const note = document.getElementById('businessNote').value.trim();
+        
+        if (!date || !type) return;
+        
+        const newTransaction = {
+            id: Math.max(...this.data.business.map(t => t.id), 0) + 1,
+            date,
+            type,
+            income,
+            outcome,
+            note,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        this.data.business.push(newTransaction);
+        await this.storage.set('business', this.data.business);
+        
+        if (this.isOnline) {
+            try {
+                await this.api.create('business', newTransaction);
+            } catch (error) {
+                console.warn('Failed to sync new business transaction:', error);
+            }
+        }
+        
+        this.closeModal();
+        this.renderCurrentPage();
+    }
+    
+    async updateBusinessTransaction() {
+        const id = parseInt(document.getElementById('businessId').value);
+        const date = document.getElementById('businessDate').value;
+        const type = document.getElementById('businessType').value.trim();
+        const income = parseInt(document.getElementById('businessIncome').value) || 0;
+        const outcome = parseInt(document.getElementById('businessOutcome').value) || 0;
+        const note = document.getElementById('businessNote').value.trim();
+        
+        if (!date || !type) return;
+        
+        const transactionIndex = this.data.business.findIndex(t => t.id === id);
+        if (transactionIndex >= 0) {
+            this.data.business[transactionIndex] = {
+                ...this.data.business[transactionIndex],
+                date,
+                type,
+                income,
+                outcome,
+                note,
+                updated_at: new Date().toISOString()
+            };
+            
+            await this.storage.set('business', this.data.business);
+            
+            if (this.isOnline) {
+                try {
+                    await this.api.update('business', id, { date, type, income, outcome, note });
+                } catch (error) {
+                    console.warn('Failed to sync business transaction update:', error);
+                }
+            }
+        }
+        
+        this.closeModal();
+        this.renderCurrentPage();
+    }
+    
+    async deleteBusinessTransaction(id) {
+        const transactionIndex = this.data.business.findIndex(t => t.id === id);
+        if (transactionIndex >= 0) {
+            this.data.business.splice(transactionIndex, 1);
+            await this.storage.set('business', this.data.business);
+            
+            if (this.isOnline) {
+                try {
+                    await this.api.delete('business', id);
+                } catch (error) {
+                    console.warn('Failed to sync business transaction deletion:', error);
+                }
+            }
+        }
+        
+        this.renderCurrentPage();
+    }
     
     // Utility functions
     formatCurrency(amount) {
