@@ -17,12 +17,29 @@ export class ChartManager {
 
     // Render daily cash flow chart
     renderDailyCashFlowChart(financeData, businessData, month) {
+        console.log('Rendering daily cash flow chart with data:', { financeData, businessData, month });
         const ctx = document.getElementById('dailyCashFlowChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('Canvas element dailyCashFlowChart not found');
+            return;
+        }
 
         // Ensure data arrays exist
         financeData = financeData || [];
         businessData = businessData || [];
+        
+        // Set default month if not provided or convert ISO date
+        if (!month || month === undefined || month === null) {
+            const now = new Date();
+            month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            console.log('No month provided for cash flow chart, using current month:', month);
+        } else if (month.includes('T')) {
+            // Convert ISO timestamp to YYYY-MM format
+            const date = new Date(month);
+            month = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            console.log('Converted ISO month to YYYY-MM format:', month);
+        }
+        console.log('Active month for cash flow chart:', month);
         
         // Destroy existing chart
         if (this.charts.dailyCashFlow) {
@@ -30,8 +47,23 @@ export class ChartManager {
         }
 
         // Calculate daily cash flow for the month
-        const daysInMonth = new Date(month + '-01').getMonth() === new Date(month + '-31').getMonth() ? 31 : 
-                           new Date(new Date(month + '-01').getFullYear(), new Date(month + '-01').getMonth() + 1, 0).getDate();
+        let daysInMonth;
+        try {
+            if (!month || typeof month !== 'string') {
+                throw new Error('Invalid month parameter');
+            }
+            const monthParts = month.split('-');
+            if (monthParts.length !== 2) {
+                throw new Error('Month should be in YYYY-MM format');
+            }
+            const year = parseInt(monthParts[0]);
+            const monthNum = parseInt(monthParts[1]);
+            daysInMonth = new Date(year, monthNum, 0).getDate();
+        } catch (error) {
+            console.error('Error calculating days in month for cash flow:', error, 'month:', month);
+            daysInMonth = 31; // fallback
+        }
+        console.log('Days in month for cash flow:', daysInMonth, 'for month:', month);
         
         const labels = [];
         const incomeData = [];
@@ -48,9 +80,17 @@ export class ChartManager {
             // Calculate from finance data
             if (Array.isArray(financeData)) {
                 financeData.forEach(transaction => {
-                    if (transaction.date === dateKey) {
-                        dailyIncome += transaction.income || 0;
-                        dailyOutcome += transaction.outcome || 0;
+                    if (transaction && transaction.date) {
+                        // Handle both ISO date format and YYYY-MM-DD format
+                        let transactionDate = transaction.date;
+                        if (transactionDate.includes('T')) {
+                            // ISO format: convert to YYYY-MM-DD
+                            transactionDate = new Date(transactionDate).toISOString().split('T')[0];
+                        }
+                        if (transactionDate === dateKey) {
+                            dailyIncome += transaction.income || 0;
+                            dailyOutcome += transaction.outcome || 0;
+                        }
                     }
                 });
             }
@@ -58,9 +98,17 @@ export class ChartManager {
             // Calculate from business data
             if (Array.isArray(businessData)) {
                 businessData.forEach(transaction => {
-                    if (transaction.date === dateKey) {
-                        dailyIncome += transaction.income || 0;
-                        dailyOutcome += transaction.outcome || 0;
+                    if (transaction && transaction.date) {
+                        // Handle both ISO date format and YYYY-MM-DD format
+                        let transactionDate = transaction.date;
+                        if (transactionDate.includes('T')) {
+                            // ISO format: convert to YYYY-MM-DD
+                            transactionDate = new Date(transactionDate).toISOString().split('T')[0];
+                        }
+                        if (transactionDate === dateKey) {
+                            dailyIncome += transaction.income || 0;
+                            dailyOutcome += transaction.outcome || 0;
+                        }
                     }
                 });
             }
@@ -69,8 +117,11 @@ export class ChartManager {
             outcomeData.push(dailyOutcome);
             netData.push(dailyIncome - dailyOutcome);
         }
+        
+        console.log('Chart data prepared:', { labels: labels.length, incomeData: incomeData.length, outcomeData: outcomeData.length });
 
-        this.charts.dailyCashFlow = new Chart(ctx, {
+        try {
+            this.charts.dailyCashFlow = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -151,15 +202,35 @@ export class ChartManager {
                 }
             }
         });
+        } catch (error) {
+            console.error('Error creating daily cash flow chart:', error);
+        }
     }
 
     // Render daily progress line chart
     renderDailyChart(dailyData, month) {
+        console.log('Rendering daily progress chart with data:', { dailyData, month });
         const ctx = document.getElementById('dailyChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('Canvas element dailyChart not found');
+            return;
+        }
 
         // Ensure data exists
         dailyData = dailyData || [];
+        
+        // Set default month if not provided or convert ISO date
+        if (!month || month === undefined || month === null) {
+            const now = new Date();
+            month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+            console.log('No month provided for daily chart, using current month:', month);
+        } else if (month.includes('T')) {
+            // Convert ISO timestamp to YYYY-MM format
+            const date = new Date(month);
+            month = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            console.log('Converted ISO month to YYYY-MM format for daily chart:', month);
+        }
+        console.log('Active month for daily chart:', month);
         
         // Destroy existing chart
         if (this.charts.daily) {
@@ -167,8 +238,23 @@ export class ChartManager {
         }
 
         // Calculate daily completion percentages for the month
-        const daysInMonth = new Date(month + '-01').getMonth() === new Date(month + '-31').getMonth() ? 31 : 
-                           new Date(new Date(month + '-01').getFullYear(), new Date(month + '-01').getMonth() + 1, 0).getDate();
+        let daysInMonth;
+        try {
+            if (!month || typeof month !== 'string') {
+                throw new Error('Invalid month parameter');
+            }
+            const monthParts = month.split('-');
+            if (monthParts.length !== 2) {
+                throw new Error('Month should be in YYYY-MM format');
+            }
+            const year = parseInt(monthParts[0]);
+            const monthNum = parseInt(monthParts[1]);
+            daysInMonth = new Date(year, monthNum, 0).getDate();
+        } catch (error) {
+            console.error('Error calculating days in month for daily chart:', error, 'month:', month);
+            daysInMonth = 31; // fallback
+        }
+        console.log('Days in month for daily chart:', daysInMonth, 'for month:', month);
         
         const labels = [];
         const data = [];
@@ -182,8 +268,14 @@ export class ChartManager {
             
             if (Array.isArray(dailyData)) {
                 dailyData.forEach(item => {
-                    if (item && item.days && item.days[dateKey]) {
-                        completed++;
+                    if (item && item.days) {
+                        // Check if any variant of the date exists in the days object
+                        const dayChecked = item.days[dateKey] || 
+                                         item.days[`${month}-${day.toString().padStart(2, '0')}`] ||
+                                         false;
+                        if (dayChecked) {
+                            completed++;
+                        }
                     }
                 });
             }
@@ -191,8 +283,11 @@ export class ChartManager {
             const percentage = total > 0 ? (completed / total) * 100 : 0;
             data.push(percentage);
         }
+        
+        console.log('Daily chart data prepared:', { labels: labels.length, data: data.length, sampleData: data.slice(0, 5) });
 
-        this.charts.daily = new Chart(ctx, {
+        try {
+            this.charts.daily = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -226,12 +321,19 @@ export class ChartManager {
                 }
             }
         });
+        } catch (error) {
+            console.error('Error creating daily progress chart:', error);
+        }
     }
 
     // Render weekly vs monthly comparison bar chart
     renderWeeklyMonthlyChart(weeklyData, monthlyData) {
+        console.log('Rendering weekly vs monthly chart with data:', { weeklyData, monthlyData });
         const ctx = document.getElementById('weeklyMonthlyChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.error('Canvas element weeklyMonthlyChart not found');
+            return;
+        }
 
         // Ensure data exists
         weeklyData = weeklyData || [];
@@ -244,8 +346,11 @@ export class ChartManager {
         // Calculate average completion for weekly and monthly
         const weeklyCompletion = this.calculateAverageCompletion(weeklyData, 'weeks');
         const monthlyCompletion = this.calculateAverageCompletion(monthlyData, 'months');
+        
+        console.log('Weekly vs Monthly completion data:', { weeklyCompletion, monthlyCompletion });
 
-        this.charts.weeklyMonthly = new Chart(ctx, {
+        try {
+            this.charts.weeklyMonthly = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ['Mingguan', 'Bulanan'],
@@ -278,6 +383,9 @@ export class ChartManager {
                 }
             }
         });
+        } catch (error) {
+            console.error('Error creating weekly vs monthly chart:', error);
+        }
     }
 
     // Render spending by category donut chart
