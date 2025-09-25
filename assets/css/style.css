@@ -639,10 +639,82 @@ body {
 .settings-form {
     background: rgba(31, 41, 55, 0.9);
     padding: 2rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    border-radius: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(75, 85, 99, 0.2);
+    border-radius: 0.75rem;
     border: 1px solid rgba(139, 92, 246, 0.2);
-    max-width: 600px;
+}
+
+.settings-section h3 {
+    color: #8b5cf6;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    padding-bottom: 0.5rem;
+}
+
+.settings-section h3::before {
+    font-size: 1.2rem;
+}
+
+.settings-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.integration-info {
+    padding: 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    margin: 1rem 0;
+}
+
+.integration-info p {
+    margin: 0;
+    color: #6ee7b7;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.form-help {
+    display: block;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.page-header h2 {
+    color: #f3f4f6;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
 }
 
 .category-list {

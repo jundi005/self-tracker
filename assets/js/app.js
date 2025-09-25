@@ -718,7 +718,13 @@ class SelfTrackerApp {
         document
             .getElementById("addBusinessTransaction")
             .addEventListener("click", () => {
-                this.showAddBusinessTransactionModal();
+                console.log("Add business transaction button clicked");
+                try {
+                    this.showAddBusinessTransactionModal();
+                } catch (error) {
+                    console.error("Error showing business transaction modal:", error);
+                    alert("Error: " + error.message);
+                }
             });
 
         // Settings events
@@ -834,9 +840,13 @@ class SelfTrackerApp {
     }
 
     renderDailyPage() {
-        const selectedMonth =
-            document.getElementById("dailyMonth").value ||
-            this.data.settings.activeMonth;
+        let selectedMonth = document.getElementById("dailyMonth").value || this.data.settings.activeMonth;
+        
+        // If no month selected or no data for selected month, find month with most recent data
+        if (!selectedMonth || !this.hasDataForMonth(this.data.daily, selectedMonth)) {
+            selectedMonth = this.findMostRecentDataMonth(this.data.daily) || selectedMonth || new Date().toISOString().slice(0, 7);
+        }
+        
         this.populateMonthOptions("dailyMonth", selectedMonth);
 
         const gridHtml = this.renderer.renderDailyGrid(
@@ -922,6 +932,10 @@ class SelfTrackerApp {
 
     renderDashboard() {
         this.updateFinancialOverview();
+        
+        // Find month with actual data for daily chart, fallback to activeMonth
+        const dailyDataMonth = this.findMostRecentDataMonth(this.data.daily) || this.data.settings.activeMonth;
+        
         this.charts.renderDailyCashFlowChart(
             this.data.finance,
             this.data.business,
@@ -929,7 +943,7 @@ class SelfTrackerApp {
         );
         this.charts.renderDailyChart(
             this.data.daily,
-            this.data.settings.activeMonth,
+            dailyDataMonth,
         );
         this.charts.renderWeeklyMonthlyChart(
             this.data.weekly,
@@ -1647,21 +1661,35 @@ class SelfTrackerApp {
     }
 
     showAddBusinessTransactionModal() {
-        const types = [
-            ...new Set(this.data.business.map((item) => item.type)),
-        ].filter(Boolean);
-        const formHtml = this.renderer.renderBusinessTransactionForm(
-            null,
-            types,
-        );
-        this.showModal("Tambah Transaksi Bisnis", formHtml);
+        console.log("showAddBusinessTransactionModal called");
+        try {
+            const types = [
+                ...new Set(this.data.business.map((item) => item.type)),
+            ].filter(Boolean);
+            console.log("Available business types:", types);
+            
+            const formHtml = this.renderer.renderBusinessTransactionForm(
+                null,
+                types,
+            );
+            console.log("Form HTML generated successfully");
+            
+            this.showModal("Tambah Transaksi Bisnis", formHtml);
+            console.log("Modal shown");
 
-        document
-            .getElementById("businessTransactionForm")
-            .addEventListener("submit", async (e) => {
-                e.preventDefault();
-                await this.addBusinessTransaction();
-            });
+            document
+                .getElementById("businessTransactionForm")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    console.log("Business transaction form submitted");
+                    await this.addBusinessTransaction();
+                });
+                
+            console.log("Form submit event listener attached");
+        } catch (error) {
+            console.error("Error in showAddBusinessTransactionModal:", error);
+            alert("Error opening transaction form: " + error.message);
+        }
     }
 
     showEditBusinessTransactionModal(transaction) {
@@ -1680,6 +1708,39 @@ class SelfTrackerApp {
                 e.preventDefault();
                 await this.updateBusinessTransaction();
             });
+    }
+
+    // Helper function to check if there's data for a specific month
+    hasDataForMonth(data, month) {
+        if (!Array.isArray(data) || !month) return false;
+        
+        return data.some(item => {
+            if (!item.days) return false;
+            return Object.keys(item.days).some(dateKey => dateKey.startsWith(month));
+        });
+    }
+
+    // Helper function to find month with most recent data
+    findMostRecentDataMonth(data) {
+        if (!Array.isArray(data)) return null;
+        
+        const allDates = [];
+        data.forEach(item => {
+            if (item.days) {
+                Object.keys(item.days).forEach(dateKey => {
+                    if (dateKey.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        allDates.push(dateKey);
+                    }
+                });
+            }
+        });
+        
+        if (allDates.length === 0) return null;
+        
+        // Sort dates and get the most recent month
+        allDates.sort().reverse();
+        const mostRecentDate = allDates[0];
+        return mostRecentDate.slice(0, 7); // Extract YYYY-MM format
     }
 
     // Settings functions
