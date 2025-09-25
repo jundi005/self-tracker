@@ -3,6 +3,14 @@ import { APIClient } from './api.js';
 import { ChartManager } from './charts.js';
 import { GridRenderer } from './renderers.js';
 
+// CONFIGURATION - Google Apps Script URL (HARDCODED)
+const GOOGLE_APPS_SCRIPT_CONFIG = {
+    // WAJIB: Ganti dengan URL deployment Google Apps Script Anda!
+    // Contoh: https://script.google.com/macros/s/AKfycbw.../exec
+    URL: 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec',
+    TOKEN: '' // Tidak diperlukan untuk Google Apps Script
+};
+
 class SelfTrackerApp {
     constructor() {
         this.api = new APIClient();
@@ -29,9 +37,8 @@ class SelfTrackerApp {
                     { id: 6, name: 'Gaji', type: 'income', limit: 8000000 },
                     { id: 7, name: 'Bonus', type: 'income', limit: 2000000 }
                 ],
-                storageMode: 'online',
-                apiToken: '',
-                apiBase: ''
+                storageMode: 'online'
+                // apiToken dan apiBase sudah tidak diperlukan - hardcoded di CONFIG
             }
         };
         
@@ -226,37 +233,29 @@ class SelfTrackerApp {
     }
 
     async loadSettings() {
-        // First, load API settings from localStorage to persist across reloads
-        const savedApiBase = localStorage.getItem('selftracker_apiBase');
-        const savedApiToken = localStorage.getItem('selftracker_apiToken');
-        
-        if (savedApiBase) {
-            this.data.settings.apiBase = savedApiBase;
-        }
-        if (savedApiToken) {
-            this.data.settings.apiToken = savedApiToken;
-        }
-        
-        // Try to load settings from API if configured
-        if (this.data.settings.apiBase) {
+        // Configure API dengan URL yang sudah hardcoded
+        if (GOOGLE_APPS_SCRIPT_CONFIG.URL && GOOGLE_APPS_SCRIPT_CONFIG.URL !== 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec') {
             try {
-                this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
+                this.api.configure(GOOGLE_APPS_SCRIPT_CONFIG.URL, GOOGLE_APPS_SCRIPT_CONFIG.TOKEN);
                 const remoteData = await this.api.pull();
                 if (remoteData && remoteData.settings) {
                     this.data.settings = { ...this.data.settings, ...remoteData.settings };
                 }
+                console.log('Settings loaded from Google Apps Script');
             } catch (error) {
                 console.warn('Failed to load settings from API:', error);
                 // Continue with default settings
             }
+        } else {
+            console.warn('Google Apps Script URL belum dikonfigurasi. Edit GOOGLE_APPS_SCRIPT_CONFIG.URL di app.js');
         }
     }
 
     async initializeData() {
-        // Try to load data from API if configured
-        if (this.data.settings.apiBase) {
+        // Try to load data dari Google Apps Script (hardcoded URL)
+        if (GOOGLE_APPS_SCRIPT_CONFIG.URL && GOOGLE_APPS_SCRIPT_CONFIG.URL !== 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec') {
             try {
-                this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
+                this.api.configure(GOOGLE_APPS_SCRIPT_CONFIG.URL, GOOGLE_APPS_SCRIPT_CONFIG.TOKEN);
                 const remoteData = await this.api.pull();
                 
                 if (remoteData) {
@@ -269,6 +268,7 @@ class SelfTrackerApp {
                             this.data[key] = this.getSampleData(key);
                         }
                     }
+                    console.log('Data loaded from Google Apps Script');
                 } else {
                     // Initialize with sample data if API returns null
                     for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
@@ -276,6 +276,7 @@ class SelfTrackerApp {
                     }
                     // Push initial data to API
                     await this.api.push(this.data);
+                    console.log('Sample data pushed to Google Apps Script');
                 }
             } catch (error) {
                 console.warn('Failed to load data from API, using sample data:', error);
@@ -285,6 +286,7 @@ class SelfTrackerApp {
                 }
             }
         } else {
+            console.warn('Google Apps Script URL belum dikonfigurasi. Edit GOOGLE_APPS_SCRIPT_CONFIG.URL di app.js');
             // Initialize with sample data if API is not configured
             for (const key of ['daily', 'weekly', 'monthly', 'finance', 'business']) {
                 this.data[key] = this.getSampleData(key);
@@ -383,7 +385,7 @@ class SelfTrackerApp {
         
         if (migrated) {
             // Save migrated data to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.push(this.data);
                 } catch (error) {
@@ -457,8 +459,8 @@ class SelfTrackerApp {
             });
         });
 
-        // Auto-refresh setup (menggantikan tombol refresh manual)
-        this.setupAutoRefresh();
+        // Initial data load setelah login (no auto-refresh)
+        this.loadInitialData();
 
         // Logout button
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -666,8 +668,6 @@ class SelfTrackerApp {
     renderSettingsPage() {
         document.getElementById('activeMonth').value = this.data.settings.activeMonth;
         document.getElementById('monthlyBudget').value = this.data.settings.monthlyBudget;
-        document.getElementById('apiToken').value = this.data.settings.apiToken;
-        document.getElementById('apiBase').value = this.data.settings.apiBase;
         
         this.renderBudgetCategories();
     }
@@ -685,8 +685,8 @@ class SelfTrackerApp {
     // Connection and sync functions
     async checkConnection() {
         try {
-            if (this.data.settings.apiBase) {
-                this.api.configure(this.data.settings.apiBase, this.data.settings.apiToken);
+            if (GOOGLE_APPS_SCRIPT_CONFIG.URL && GOOGLE_APPS_SCRIPT_CONFIG.URL !== 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec') {
+                this.api.configure(GOOGLE_APPS_SCRIPT_CONFIG.URL, GOOGLE_APPS_SCRIPT_CONFIG.TOKEN);
                 const response = await this.api.health();
                 this.isOnline = response.success;
             } else {
@@ -711,27 +711,37 @@ class SelfTrackerApp {
         }
     }
 
-    // Setup auto-refresh dengan interval
-    setupAutoRefresh() {
-        // Cleanup existing intervals untuk mencegah duplikasi
-        this.cleanup();
-        
-        // Auto refresh data setiap 30 detik
-        this.autoRefreshInterval = setInterval(() => {
-            this.refreshData(true); // true = silent refresh
-        }, 30000);
-        
-        // Initial refresh setelah 5 detik
-        this.initialRefreshTimeout = setTimeout(() => {
-            this.refreshData(true);
-        }, 5000);
+    // Helper function untuk cek apakah API sudah dikonfigurasi
+    isApiConfigured() {
+        return GOOGLE_APPS_SCRIPT_CONFIG.URL && 
+               GOOGLE_APPS_SCRIPT_CONFIG.URL !== 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec';
+    }
+
+    // Helper function untuk configure API
+    configureApi() {
+        if (this.isApiConfigured()) {
+            this.api.configure(GOOGLE_APPS_SCRIPT_CONFIG.URL, GOOGLE_APPS_SCRIPT_CONFIG.TOKEN);
+            return true;
+        }
+        return false;
+    }
+
+    // Load data pertama kali saat login (no periodic refresh)
+    async loadInitialData() {
+        // Load data langsung setelah login tanpa delay
+        try {
+            await this.refreshData(true); // Load data dari spreadsheet
+            console.log('Initial data loaded successfully');
+        } catch (error) {
+            console.warn('Failed to load initial data:', error);
+        }
     }
 
     async refreshData(silent = false) {
-        // Refresh data from API
-        if (!this.data.settings.apiBase || this.data.settings.apiBase.trim() === '') {
+        // Refresh data from Google Apps Script
+        if (!GOOGLE_APPS_SCRIPT_CONFIG.URL || GOOGLE_APPS_SCRIPT_CONFIG.URL === 'https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_ANDA/exec') {
             if (!silent) {
-                alert('Harap konfigurasi Google Apps Script URL di pengaturan terlebih dahulu!');
+                alert('Harap konfigurasi GOOGLE_APPS_SCRIPT_CONFIG.URL di app.js terlebih dahulu!');
             }
             return;
         }
@@ -827,16 +837,10 @@ class SelfTrackerApp {
         }
     }
 
-    // Cleanup function untuk auto refresh dan timeouts
+    // Cleanup function (now simplified since no intervals)
     cleanup() {
-        if (this.autoRefreshInterval) {
-            clearInterval(this.autoRefreshInterval);
-            this.autoRefreshInterval = null;
-        }
-        if (this.initialRefreshTimeout) {
-            clearTimeout(this.initialRefreshTimeout);
-            this.initialRefreshTimeout = null;
-        }
+        // No periodic intervals to clean up anymore
+        console.log('Cleanup completed');
     }
 
     // Utility functions
@@ -1270,58 +1274,44 @@ class SelfTrackerApp {
             activeMonth: document.getElementById('activeMonth').value,
             storageMode: 'online', // Always online mode
             monthlyBudget: parseInt(document.getElementById('monthlyBudget').value) || 0,
-            apiToken: document.getElementById('apiToken').value,
-            apiBase: document.getElementById('apiBase').value,
             categories: this.data.settings.categories
         };
         
         this.data.settings = { ...this.data.settings, ...newSettings };
         
-        // Save API settings to localStorage for persistence across reloads
-        localStorage.setItem('selftracker_apiBase', newSettings.apiBase || '');
-        localStorage.setItem('selftracker_apiToken', newSettings.apiToken || '');
-        
         // Save settings to API if configured
-        if (newSettings.apiBase) {
+        if (this.configureApi()) {
             try {
                 await this.api.push(this.data);
-                alert('Pengaturan berhasil disimpan!');
+                alert('Pengaturan berhasil disimpan dan disinkronkan ke Google Sheets!');
             } catch (error) {
                 console.warn('Failed to save settings to API:', error);
-                alert('Pengaturan disimpan, tapi gagal sync ke server. Pastikan URL Google Apps Script sudah benar.');
+                alert('Pengaturan disimpan, tapi gagal sync ke server. Pastikan GOOGLE_APPS_SCRIPT_CONFIG.URL sudah benar di app.js.');
             }
         } else {
-            alert('Pengaturan disimpan. Harap konfigurasi URL Google Apps Script untuk sync data.');
+            alert('Pengaturan disimpan. Harap konfigurasi GOOGLE_APPS_SCRIPT_CONFIG.URL di app.js untuk sync data.');
         }
         
         // Check connection after updating settings
         await this.checkConnection();
-        
-        alert('Pengaturan berhasil disimpan!');
     }
 
     async testConnection() {
-        const apiBase = document.getElementById('apiBase').value;
-        const apiToken = document.getElementById('apiToken').value;
-        
-        if (!apiBase) {
-            alert('Harap masukkan URL API!');
+        if (!this.isApiConfigured()) {
+            alert('Google Apps Script URL belum dikonfigurasi! Edit GOOGLE_APPS_SCRIPT_CONFIG.URL di app.js.');
             return;
         }
         
-        const oldConfig = { baseURL: this.api.baseURL, token: this.api.token };
-        this.api.configure(apiBase, apiToken);
-        
         try {
+            this.configureApi();
             const result = await this.api.health();
             if (result.success) {
-                alert('Koneksi berhasil! ✅');
+                alert('✅ Koneksi berhasil!\n\nStatus: ' + result.status + '\n🔗 URL: ' + GOOGLE_APPS_SCRIPT_CONFIG.URL);
             } else {
-                throw new Error(result.error || 'Koneksi gagal');
+                alert('❌ Koneksi gagal: ' + JSON.stringify(result));
             }
         } catch (error) {
-            alert('Koneksi gagal: ' + error.message);
-            this.api.configure(oldConfig.baseURL, oldConfig.token);
+            alert('❌ Test koneksi gagal: ' + error.message + '\n\nPastikan:\n1. GOOGLE_APPS_SCRIPT_CONFIG.URL sudah benar\n2. Google Apps Script sudah di-deploy dengan akses "Anyone"');
         }
     }
 
@@ -1501,7 +1491,7 @@ class SelfTrackerApp {
         this.data.settings.categories.push(newCategory);
         
         // Push to API if configured
-        if (this.data.settings.apiBase && this.api.isConfigured()) {
+        if (this.configureApi()) {
             try {
                 await this.api.push(this.data);
             } catch (error) {
@@ -1540,7 +1530,7 @@ class SelfTrackerApp {
             this.data.settings.categories[categoryIndex] = { id, name, type, limit };
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.push(this.data);
                 } catch (error) {
@@ -1598,7 +1588,7 @@ class SelfTrackerApp {
                     this.data = { ...this.data, ...importData.data };
                     
                     // Push imported data to API if configured
-                    if (this.data.settings.apiBase && this.api.isConfigured()) {
+                    if (this.configureApi()) {
                         try {
                             await this.api.push(this.data);
                             alert('Import berhasil dan data telah disinkronkan ke Google Sheets!');
@@ -1638,7 +1628,7 @@ class SelfTrackerApp {
         this.data.daily.push(newItem);
         
         // Push to API if configured
-        if (this.data.settings.apiBase && this.api.isConfigured()) {
+        if (this.configureApi()) {
             try {
                 await this.api.create('daily', newItem);
             } catch (error) {
@@ -1661,7 +1651,7 @@ class SelfTrackerApp {
             this.data.daily[itemIndex].updated_at = new Date().toISOString();
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.update('daily', id, { name });
                 } catch (error) {
@@ -1680,7 +1670,7 @@ class SelfTrackerApp {
             this.data.daily.splice(itemIndex, 1);
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.delete('daily', id);
                 } catch (error) {
@@ -1706,7 +1696,7 @@ class SelfTrackerApp {
             item.updated_at = new Date().toISOString();
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.update('daily', itemId, { days: item.days });
                 } catch (error) {
@@ -1730,7 +1720,7 @@ class SelfTrackerApp {
             item.updated_at = new Date().toISOString();
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.update('weekly', itemId, { weeks: item.weeks });
                 } catch (error) {
@@ -1764,7 +1754,7 @@ class SelfTrackerApp {
         this.data.finance.push(newTransaction);
         
         // Push to API if configured
-        if (this.data.settings.apiBase && this.api.isConfigured()) {
+        if (this.configureApi()) {
             try {
                 await this.api.create('finance', newTransaction);
             } catch (error) {
@@ -1799,7 +1789,7 @@ class SelfTrackerApp {
             };
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.update('finance', id, { date, category, description, income, outcome });
                 } catch (error) {
@@ -1818,7 +1808,7 @@ class SelfTrackerApp {
             this.data.finance.splice(transactionIndex, 1);
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.delete('finance', id);
                 } catch (error) {
@@ -1854,7 +1844,7 @@ class SelfTrackerApp {
         this.data.business.push(newTransaction);
         
         // Push to API if configured
-        if (this.data.settings.apiBase && this.api.isConfigured()) {
+        if (this.configureApi()) {
             try {
                 await this.api.create('business', newTransaction);
             } catch (error) {
@@ -1889,7 +1879,7 @@ class SelfTrackerApp {
             };
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.update('business', id, { date, type, income, outcome, note });
                 } catch (error) {
@@ -1908,7 +1898,7 @@ class SelfTrackerApp {
             this.data.business.splice(transactionIndex, 1);
             
             // Push to API if configured
-            if (this.data.settings.apiBase && this.api.isConfigured()) {
+            if (this.configureApi()) {
                 try {
                     await this.api.delete('business', id);
                 } catch (error) {

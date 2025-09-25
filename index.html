@@ -256,11 +256,14 @@
                         <button id="addBudgetCategory" class="btn btn-secondary">+ Tambah Kategori</button>
                     </div>
                     <div class="form-group">
-                        <label>Google Sheets API</label>
-                        <input type="text" id="apiToken" class="input" placeholder="Bearer Token (Opsional - tidak digunakan lagi)" disabled>
-                        <input type="text" id="apiBase" class="input" placeholder="Apps Script URL (Wajib)" required>
+                        <label>Google Sheets Integration</label>
+                        <div style="padding: 10px; background: #f5f5f5; border-radius: 5px; margin: 10px 0;">
+                            <p style="margin: 0; color: #666; font-size: 0.9em;">
+                                ✅ Google Apps Script URL sudah dikonfigurasi di dalam code.<br>
+                                📝 Edit GOOGLE_APPS_SCRIPT_CONFIG.URL di file app.js untuk mengubah URL.
+                            </p>
+                        </div>
                         <button id="testConnection" class="btn btn-secondary">Test Koneksi</button>
-                        <small style="color: #666; font-size: 0.9em;">Token tidak diperlukan lagi - Google Apps Script menggunakan autentikasi bawaan</small>
                     </div>
                     <div class="form-actions">
                         <button id="saveSettings" class="btn btn-primary">Simpan Pengaturan</button>
