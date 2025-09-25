@@ -1,14 +1,22 @@
 // Google Apps Script Web App Backend for Self Tracker
-// DEPLOYMENT INSTRUCTIONS:
-// 1. Deploy as Web App with 'Execute as: Me' and 'Who has access: Anyone' (PENTING!)
-// 2. No manual token or spreadsheet setup needed - everything auto-generated!
-// 3. Keep deployment URL private for security
+// SETUP INSTRUCTIONS:
+// 1. Buat spreadsheet baru di Google Sheets atau gunakan yang sudah ada
+// 2. Buka spreadsheet tersebut, copy ID dari URL
+//    Contoh URL: https://docs.google.com/spreadsheets/d/1A2B3C4D5E6F7G8H9I0J/edit#gid=0
+//    ID nya adalah: 1A2B3C4D5E6F7G8H9I0J (bagian setelah /d/ dan sebelum /edit)
+// 3. Paste ID tersebut ke SPREADSHEET_ID di CONFIG di bawah ini
+// 4. Deploy as Web App dengan setting:
+//    - Execute as: Me 
+//    - Who has access: Anyone (PENTING untuk CORS!)
+// 5. Copy deployment URL dan masukkan ke setting aplikasi
+// 6. Script akan otomatis membuat sheet dan header yang diperlukan dalam spreadsheet Anda
 
-// Configuration - AUTO-MANAGED (no user setup required)
+// Configuration - WAJIB ISI SPREADSHEET_ID!
 const CONFIG = {
-  // TOKEN removed - using Google's built-in authentication
-  SPREADSHEET_ID: 'AUTO_CREATE', // Will auto-create spreadsheet
-  SPREADSHEET_NAME: 'Self Tracker Data', // Name for auto-created spreadsheet
+  // WAJIB: Ganti dengan ID spreadsheet Anda! 
+  // ID bisa didapat dari URL spreadsheet: https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/edit
+  SPREADSHEET_ID: 'GANTI_DENGAN_ID_SPREADSHEET_ANDA', // WAJIB diisi dengan ID spreadsheet yang sudah ada!
+  SPREADSHEET_NAME: 'Self Tracker Data', // Hanya untuk reference, tidak digunakan untuk membuat spreadsheet baru
   SHEETS: {
     DAILY: 'Daily',
     WEEKLY: 'Weekly', 
@@ -95,60 +103,41 @@ function doGet(e) {
   }
 }
 
-// Authentication check
-// Get or create single spreadsheet (prevents multiple backups)
+// Get spreadsheet by configured ID (TIDAK akan membuat spreadsheet baru)
 function getOrCreateSpreadsheet() {
   try {
-    const properties = PropertiesService.getScriptProperties();
-    let spreadsheetId = properties.getProperty('SPREADSHEET_ID');
+    // Validasi konfigurasi
+    if (!CONFIG.SPREADSHEET_ID || CONFIG.SPREADSHEET_ID === 'GANTI_DENGAN_ID_SPREADSHEET_ANDA') {
+      throw new Error('SPREADSHEET_ID belum dikonfigurasi! Silakan edit CONFIG.SPREADSHEET_ID dengan ID spreadsheet Anda.');
+    }
     
-    // Only create new spreadsheet if no ID is stored
-    if (!spreadsheetId) {
-      // Create new spreadsheet
-      const spreadsheet = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
-      spreadsheetId = spreadsheet.getId();
-      properties.setProperty('SPREADSHEET_ID', spreadsheetId);
-      
-      console.log('Created new spreadsheet:', CONFIG.SPREADSHEET_NAME, 'ID:', spreadsheetId);
+    try {
+      // Buka spreadsheet berdasarkan ID yang dikonfigurasi
+      const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+      console.log('Successfully opened spreadsheet:', spreadsheet.getName(), 'ID:', CONFIG.SPREADSHEET_ID);
       return spreadsheet;
-    } else {
-      try {
-        // Try to open existing spreadsheet
-        return SpreadsheetApp.openById(spreadsheetId);
-      } catch (openError) {
-        console.warn('Error accessing stored spreadsheet:', openError);
-        
-        // Check if it's a permanent error (not found/access denied) vs transient error
-        const errorMsg = openError.toString().toLowerCase();
-        const isPermanentError = errorMsg.includes('not found') || 
-                                errorMsg.includes('access denied') || 
-                                errorMsg.includes('permission denied') ||
-                                errorMsg.includes('does not exist');
-        
-        if (isPermanentError) {
-          console.log('Permanent error detected, creating replacement spreadsheet');
-          // Only create new spreadsheet for permanent errors
-          const spreadsheet = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
-          const newSpreadsheetId = spreadsheet.getId();
-          properties.setProperty('SPREADSHEET_ID', newSpreadsheetId);
-          
-          console.log('Created replacement spreadsheet:', CONFIG.SPREADSHEET_NAME, 'ID:', newSpreadsheetId);
-          return spreadsheet;
-        } else {
-          // For transient errors, retry once after brief delay
-          console.log('Transient error detected, retrying...');
-          Utilities.sleep(1000); // Wait 1 second
-          try {
-            return SpreadsheetApp.openById(spreadsheetId);
-          } catch (retryError) {
-            console.error('Retry failed, re-throwing original error:', retryError);
-            throw openError; // Throw original error to maintain error context
-          }
+    } catch (openError) {
+      console.error('Error accessing configured spreadsheet:', openError);
+      
+      // Berikan pesan error yang jelas
+      const errorMsg = openError.toString().toLowerCase();
+      if (errorMsg.includes('not found') || errorMsg.includes('does not exist')) {
+        throw new Error(`Spreadsheet dengan ID '${CONFIG.SPREADSHEET_ID}' tidak ditemukan. Pastikan ID benar dan Anda memiliki akses ke spreadsheet tersebut.`);
+      } else if (errorMsg.includes('access denied') || errorMsg.includes('permission denied')) {
+        throw new Error(`Akses ditolak ke spreadsheet '${CONFIG.SPREADSHEET_ID}'. Pastikan Anda memiliki permission untuk mengakses spreadsheet tersebut.`);
+      } else {
+        // Retry sekali untuk error transient
+        console.log('Retrying spreadsheet access...');
+        Utilities.sleep(1000);
+        try {
+          return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+        } catch (retryError) {
+          throw new Error(`Gagal mengakses spreadsheet: ${openError.message}`);
         }
       }
     }
   } catch (error) {
-    console.error('Error getting/creating spreadsheet:', error);
+    console.error('Error in getOrCreateSpreadsheet:', error);
     throw error;
   }
 }
@@ -169,30 +158,41 @@ function handleHealth() {
   };
 }
 
-// Initialize spreadsheet with required sheets
+// Initialize sheets dalam spreadsheet yang sudah ada (TIDAK membuat spreadsheet baru)
 function handleInit() {
   try {
     const spreadsheet = getOrCreateSpreadsheet();
     
-    // Create sheets if they don't exist
+    // Buat sheets jika belum ada (hanya sheets, bukan spreadsheet baru)
+    const createdSheets = [];
+    const existingSheets = [];
+    
     Object.values(CONFIG.SHEETS).forEach(sheetName => {
       let sheet = spreadsheet.getSheetByName(sheetName);
       if (!sheet) {
         sheet = spreadsheet.insertSheet(sheetName);
         setupSheetHeaders(sheet, sheetName);
+        createdSheets.push(sheetName);
+        console.log('Created new sheet:', sheetName);
+      } else {
+        existingSheets.push(sheetName);
+        console.log('Sheet already exists:', sheetName);
       }
     });
 
     return {
       success: true,
-      message: 'Spreadsheet auto-created and initialized successfully',
+      message: `Sheets initialized successfully dalam spreadsheet: ${spreadsheet.getName()}`,
       spreadsheetId: spreadsheet.getId(),
       spreadsheetUrl: spreadsheet.getUrl(),
-      sheets: Object.values(CONFIG.SHEETS)
+      spreadsheetName: spreadsheet.getName(),
+      allSheets: Object.values(CONFIG.SHEETS),
+      createdSheets: createdSheets,
+      existingSheets: existingSheets
     };
   } catch (error) {
     console.error('Init error:', error);
-    return { error: 'Failed to initialize spreadsheet: ' + error.message };
+    return { error: 'Failed to initialize sheets: ' + error.message };
   }
 }
 
