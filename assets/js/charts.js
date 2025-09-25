@@ -70,6 +70,11 @@ export class ChartManager {
         const outcomeData = [];
         const netData = [];
 
+        // Running totals for cumulative chart
+        let cumulativeIncome = 0;
+        let cumulativeOutcome = 0;
+        let cumulativeNet = 0;
+
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${month}-${day.toString().padStart(2, '0')}`;
             labels.push(day);
@@ -113,9 +118,15 @@ export class ChartManager {
                 });
             }
             
-            incomeData.push(dailyIncome);
-            outcomeData.push(dailyOutcome);
-            netData.push(dailyIncome - dailyOutcome);
+            // Add daily amounts to cumulative totals
+            cumulativeIncome += dailyIncome;
+            cumulativeOutcome += dailyOutcome;
+            cumulativeNet += (dailyIncome - dailyOutcome);
+            
+            // Push cumulative values instead of daily values
+            incomeData.push(cumulativeIncome);
+            outcomeData.push(cumulativeOutcome);
+            netData.push(cumulativeNet);
         }
         
         console.log('Chart data prepared:', { labels: labels.length, incomeData: incomeData.length, outcomeData: outcomeData.length });
@@ -126,21 +137,21 @@ export class ChartManager {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Income',
+                    label: 'Cumulative Income',
                     data: incomeData,
                     borderColor: this.colors.success,
                     backgroundColor: this.colors.success + '20',
                     tension: 0.4,
                     fill: false
                 }, {
-                    label: 'Spending',
+                    label: 'Cumulative Spending',
                     data: outcomeData,
                     borderColor: this.colors.danger,
                     backgroundColor: this.colors.danger + '20',
                     tension: 0.4,
                     fill: false
                 }, {
-                    label: 'Net Flow',
+                    label: 'Cumulative Cash Flow',
                     data: netData,
                     borderColor: this.colors.primary,
                     backgroundColor: this.colors.primary + '20',

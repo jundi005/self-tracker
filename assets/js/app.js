@@ -1222,8 +1222,10 @@ class SelfTrackerApp {
         let optionsHtml = '<option value="">Semua Kategori</option>';
 
         this.data.settings.categories.forEach((category) => {
-            const selected = category === selectedValue ? "selected" : "";
-            optionsHtml += `<option value="${category}" ${selected}>${category}</option>`;
+            const categoryValue = category.id || category.name || category;
+            const categoryName = category.name || category;
+            const selected = categoryValue === selectedValue ? "selected" : "";
+            optionsHtml += `<option value="${categoryValue}" ${selected}>${categoryName}</option>`;
         });
 
         element.innerHTML = optionsHtml;
@@ -1623,13 +1625,11 @@ class SelfTrackerApp {
     }
 
     showAddTransactionModal() {
-        // Only show spending categories for regular transactions
-        const spendingCategories = this.data.settings.categories.filter(
-            (cat) => cat.type === "spending",
-        );
+        // Show both spending and income categories for transactions
+        const allCategories = this.data.settings.categories || [];
         const formHtml = this.renderer.renderTransactionForm(
             null,
-            spendingCategories,
+            allCategories,
         );
         this.showModal("Tambah Transaksi", formHtml);
 
@@ -1642,13 +1642,11 @@ class SelfTrackerApp {
     }
 
     showEditTransactionModal(transaction) {
-        // Only show spending categories for regular transactions
-        const spendingCategories = this.data.settings.categories.filter(
-            (cat) => cat.type === "spending",
-        );
+        // Show both spending and income categories for transactions
+        const allCategories = this.data.settings.categories || [];
         const formHtml = this.renderer.renderTransactionForm(
             transaction,
-            spendingCategories,
+            allCategories,
         );
         this.showModal("Edit Transaksi", formHtml);
 
@@ -2266,6 +2264,36 @@ class SelfTrackerApp {
                     });
                 } catch (error) {
                     console.warn("Failed to update weekly checkbox:", error);
+                }
+            }
+        }
+    }
+
+    async updateMonthlyCheckbox(itemId, monthKey, isChecked) {
+        const item = this.data.monthly.find((item) => item.id === itemId);
+        if (item) {
+            if (!item.months) item.months = {};
+
+            if (isChecked) {
+                item.months[monthKey] = true;
+            } else {
+                delete item.months[monthKey];
+            }
+
+            item.updated_at = new Date().toISOString();
+
+            // Push to API if configured
+            if (this.configureApi()) {
+                try {
+                    await this.api.update("monthly", itemId, {
+                        months: item.months,
+                    });
+                } catch (error) {
+                    console.warn("Failed to update monthly checkbox:", error);
+                    // Show user-friendly error message
+                    if (!error.message.includes("fetch")) {
+                        alert("Gagal menyimpan perubahan ke Google Sheets. Data tetap tersimpan secara lokal.");
+                    }
                 }
             }
         }
