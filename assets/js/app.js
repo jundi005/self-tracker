@@ -840,11 +840,11 @@ class SelfTrackerApp {
     }
 
     renderDailyPage() {
-        let selectedMonth = document.getElementById("dailyMonth").value || this.data.settings.activeMonth;
+        let selectedMonth = document.getElementById("dailyMonth").value;
         
-        // If no month selected or no data for selected month, find month with most recent data
-        if (!selectedMonth || !this.hasDataForMonth(this.data.daily, selectedMonth)) {
-            selectedMonth = this.findMostRecentDataMonth(this.data.daily) || selectedMonth || new Date().toISOString().slice(0, 7);
+        // If no month selected, default to current month
+        if (!selectedMonth) {
+            selectedMonth = new Date().toISOString().slice(0, 7);
         }
         
         this.populateMonthOptions("dailyMonth", selectedMonth);

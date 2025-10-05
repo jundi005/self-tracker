@@ -137,26 +137,13 @@ export class ChartManager {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Cumulative Income',
-                    data: incomeData,
-                    borderColor: this.colors.success,
-                    backgroundColor: this.colors.success + '20',
-                    tension: 0.4,
-                    fill: false
-                }, {
-                    label: 'Cumulative Spending',
-                    data: outcomeData,
-                    borderColor: this.colors.danger,
-                    backgroundColor: this.colors.danger + '20',
-                    tension: 0.4,
-                    fill: false
-                }, {
-                    label: 'Cumulative Cash Flow',
+                    label: 'Total Uang',
                     data: netData,
                     borderColor: this.colors.primary,
                     backgroundColor: this.colors.primary + '20',
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    borderWidth: 2
                 }]
             },
             options: {
