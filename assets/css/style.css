@@ -1009,11 +1009,15 @@ body {
 /* ===== MOBILE BREAKPOINT (max-width: 639px) ===== */
 @media (max-width: 639px) {
     .current-date {
-        display: none;
+        font-size: 0.65rem;
     }
     
     .current-time {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+    }
+    
+    .datetime-display {
+        gap: 0.05rem;
     }
 }
 
