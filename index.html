@@ -239,56 +239,47 @@
             <!-- Settings Page -->
             <section id="settings-page" class="page">
                 <div class="page-header">
-                    <h2>⚙️ Pengaturan Sistem</h2>
-                    <p>Kelola preferensi aplikasi dan integrasi data Anda</p>
+                    <h2>Pengaturan</h2>
                 </div>
                 <div class="settings-form">
                     <!-- Basic Settings -->
                     <div class="settings-section">
-                        <h3>📅 Pengaturan Dasar</h3>
+                        <h3>Pengaturan Dasar</h3>
                         <div class="settings-row">
                             <div class="form-group">
                                 <label>Bulan Aktif</label>
                                 <input type="month" id="activeMonth" class="input">
-                                <small class="form-help">Bulan yang sedang aktif untuk tracking</small>
                             </div>
                             <div class="form-group">
                                 <label>Budget Bulanan (Rp)</label>
                                 <input type="number" id="monthlyBudget" class="input" min="0" step="100000">
-                                <small class="form-help">Target budget pengeluaran bulanan</small>
                             </div>
                         </div>
                     </div>
 
                     <!-- Category Management -->
                     <div class="settings-section">
-                        <h3>📊 Manajemen Kategori</h3>
+                        <h3>Manajemen Kategori</h3>
                         <div id="budgetCategories" class="category-list"></div>
-                        <button id="addBudgetCategory" class="btn btn-secondary">+ Tambah Kategori Baru</button>
+                        <button id="addBudgetCategory" class="btn btn-secondary">Tambah Kategori</button>
                     </div>
 
                     <!-- Integration Settings -->
                     <div class="settings-section">
-                        <h3>🔗 Integrasi Google Sheets</h3>
+                        <h3>Integrasi Google Sheets</h3>
                         <div class="integration-info">
-                            <p>
-                                ✅ Google Apps Script URL sudah dikonfigurasi dalam sistem<br>
-                                📝 Edit GOOGLE_APPS_SCRIPT_CONFIG.URL di file app.js untuk mengubah URL<br>
-                                🔄 Data akan tersinkronisasi otomatis ke Google Sheets
-                            </p>
+                            <p>Data tersinkronisasi otomatis ke Google Sheets</p>
                         </div>
-                        <div class="settings-row">
-                            <button id="testConnection" class="btn btn-secondary">🔍 Test Koneksi</button>
-                        </div>
+                        <button id="testConnection" class="btn btn-secondary">Test Koneksi</button>
                     </div>
 
                     <!-- Action Buttons -->
                     <div class="settings-section">
-                        <h3>💾 Data Management</h3>
+                        <h3>Manajemen Data</h3>
                         <div class="form-actions">
-                            <button id="saveSettings" class="btn btn-primary">💾 Simpan Pengaturan</button>
-                            <button id="exportData" class="btn btn-secondary">📤 Export Data</button>
-                            <button id="importData" class="btn btn-secondary">📥 Import Data</button>
+                            <button id="saveSettings" class="btn btn-primary">Simpan Pengaturan</button>
+                            <button id="exportData" class="btn btn-secondary">Export Data</button>
+                            <button id="importData" class="btn btn-secondary">Import Data</button>
                         </div>
                     </div>
                 </div>

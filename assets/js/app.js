@@ -1816,17 +1816,24 @@ class SelfTrackerApp {
         }
 
         // Spending Categories
-        html += '<div class="category-group"><h4>Kategori Pengeluaran</h4>';
+        html += '<div class="category-group"><h4>Pengeluaran</h4>';
         const spendingCategories = this.data.settings.categories.filter(
             (cat) => cat.type === "spending",
         );
+        if (spendingCategories.length === 0) {
+            html += '<p class="empty-message">Belum ada kategori pengeluaran</p>';
+        }
         spendingCategories.forEach((category) => {
+            const formattedLimit = new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(category.limit);
             html += `
                 <div class="category-item" data-id="${category.id}">
                     <div class="category-info">
-                        <input type="text" value="${category.name}" data-field="name" data-id="${category.id}" class="category-input">
-                        <input type="number" value="${category.limit}" data-field="limit" data-id="${category.id}" class="category-limit" min="0" step="1000" placeholder="Limit">
-                        <span class="category-type">Pengeluaran</span>
+                        <span class="category-name">${category.name}</span>
+                        <span class="category-limit">${formattedLimit}</span>
                     </div>
                     <div class="category-actions">
                         <button type="button" class="btn-edit" onclick="selfTracker.showEditCategoryModal(${category.id})">Edit</button>
@@ -1838,17 +1845,24 @@ class SelfTrackerApp {
         html += "</div>";
 
         // Income Categories
-        html += '<div class="category-group"><h4>Kategori Pemasukan</h4>';
+        html += '<div class="category-group"><h4>Pemasukan</h4>';
         const incomeCategories = this.data.settings.categories.filter(
             (cat) => cat.type === "income",
         );
+        if (incomeCategories.length === 0) {
+            html += '<p class="empty-message">Belum ada kategori pemasukan</p>';
+        }
         incomeCategories.forEach((category) => {
+            const formattedLimit = new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(category.limit);
             html += `
                 <div class="category-item" data-id="${category.id}">
                     <div class="category-info">
-                        <input type="text" value="${category.name}" data-field="name" data-id="${category.id}" class="category-input">
-                        <input type="number" value="${category.limit}" data-field="limit" data-id="${category.id}" class="category-limit" min="0" step="1000" placeholder="Limit">
-                        <span class="category-type">Pemasukan</span>
+                        <span class="category-name">${category.name}</span>
+                        <span class="category-limit">${formattedLimit}</span>
                     </div>
                     <div class="category-actions">
                         <button type="button" class="btn-edit" onclick="selfTracker.showEditCategoryModal(${category.id})">Edit</button>
@@ -1860,28 +1874,6 @@ class SelfTrackerApp {
         html += "</div></div>";
 
         container.innerHTML = html;
-
-        // Bind input events for real-time updates
-        container
-            .querySelectorAll(".category-input, .category-limit")
-            .forEach((input) => {
-                input.addEventListener("change", (e) => {
-                    const id = parseInt(e.target.dataset.id);
-                    const field = e.target.dataset.field;
-                    const value =
-                        field === "limit"
-                            ? parseInt(e.target.value) || 0
-                            : e.target.value.trim();
-
-                    const category = this.data.settings.categories.find(
-                        (cat) => cat.id === id,
-                    );
-                    if (category) {
-                        category[field] = value;
-                        this.saveSettings();
-                    }
-                });
-            });
     }
 
     addBudgetCategory() {
