@@ -1085,6 +1085,11 @@ body {
             "sidebar main";
         grid-template-columns: 260px 1fr;
         grid-template-rows: auto 1fr;
+        transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .app.sidebar-hidden {
+        grid-template-columns: 0 1fr;
     }
 
     .header {
@@ -1098,6 +1103,17 @@ body {
         height: auto;
         min-height: calc(100vh - 65px);
         box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar.hidden {
+        display: block !important;
+        width: 0;
+        min-width: 0;
+        padding: 0;
+        opacity: 0;
+        box-shadow: none;
     }
 
     .sidebar.show-mobile {
