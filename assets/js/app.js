@@ -26,7 +26,10 @@ class SelfTrackerApp {
             finance: [],
             business: [],
             settings: {
-                activeMonth: new Date().toISOString().slice(0, 7),
+                activeMonth: (() => {
+                    const now = new Date();
+                    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                })(),
                 monthlyBudget: 5000000,
                 categories: [
                     {
@@ -72,8 +75,34 @@ class SelfTrackerApp {
         await this.loadSettings();
         await this.initializeData();
         this.bindEvents();
+        this.startClock();
         this.renderCurrentPage();
         await this.checkConnection();
+    }
+
+    startClock() {
+        const updateDateTime = () => {
+            const now = new Date();
+            
+            // Format tanggal: Senin, 5 Oktober 2025
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            const dateStr = now.toLocaleDateString('id-ID', options);
+            
+            // Format jam: 14:30:45
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            const dateEl = document.getElementById('currentDate');
+            const timeEl = document.getElementById('currentTime');
+            
+            if (dateEl) dateEl.textContent = dateStr;
+            if (timeEl) timeEl.textContent = timeStr;
+        };
+        
+        // Update immediately
+        updateDateTime();
+        
+        // Update every second
+        this.clockInterval = setInterval(updateDateTime, 1000);
     }
 
     checkAuthentication() {
@@ -164,6 +193,7 @@ class SelfTrackerApp {
             await this.loadSettings();
             await this.initializeData();
             this.bindEvents();
+            this.startClock();
             this.renderCurrentPage();
             await this.checkConnection();
         } else {
@@ -842,9 +872,10 @@ class SelfTrackerApp {
     renderDailyPage() {
         let selectedMonth = document.getElementById("dailyMonth").value;
         
-        // If no month selected, default to current month
+        // If no month selected, default to current month (using local time)
         if (!selectedMonth) {
-            selectedMonth = new Date().toISOString().slice(0, 7);
+            const now = new Date();
+            selectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         }
         
         this.populateMonthOptions("dailyMonth", selectedMonth);
@@ -933,25 +964,41 @@ class SelfTrackerApp {
     renderDashboard() {
         this.updateFinancialOverview();
         
-        // Find month with actual data for daily chart, fallback to activeMonth
-        const dailyDataMonth = this.findMostRecentDataMonth(this.data.daily) || this.data.settings.activeMonth;
+        // Use current month for all charts (using local time, not UTC)
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
+        // Filter finance and business data for current month only (using local time)
+        const currentMonthFinance = this.data.finance.filter(transaction => {
+            if (!transaction || !transaction.date) return false;
+            const txDate = new Date(transaction.date);
+            const txMonthKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+            return txMonthKey === currentMonth;
+        });
+        
+        const currentMonthBusiness = this.data.business.filter(transaction => {
+            if (!transaction || !transaction.date) return false;
+            const txDate = new Date(transaction.date);
+            const txMonthKey = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+            return txMonthKey === currentMonth;
+        });
         
         this.charts.renderDailyCashFlowChart(
-            this.data.finance,
-            this.data.business,
-            this.data.settings.activeMonth,
+            currentMonthFinance,
+            currentMonthBusiness,
+            currentMonth,
         );
         this.charts.renderDailyChart(
             this.data.daily,
-            dailyDataMonth,
+            currentMonth,
         );
         this.charts.renderWeeklyMonthlyChart(
             this.data.weekly,
             this.data.monthly,
         );
-        this.charts.renderCategoryChart(this.data.finance);
-        this.charts.renderBudgetChart(this.data.finance, this.data.settings);
-        this.charts.renderBusinessChart(this.data.business);
+        this.charts.renderCategoryChart(currentMonthFinance);
+        this.charts.renderBudgetChart(currentMonthFinance, this.data.settings);
+        this.charts.renderBusinessChart(currentMonthBusiness);
     }
 
     renderSettingsPage() {
@@ -1164,9 +1211,13 @@ class SelfTrackerApp {
         }
     }
 
-    // Cleanup function (now simplified since no intervals)
+    // Cleanup function
     cleanup() {
-        // No periodic intervals to clean up anymore
+        // Clear clock interval
+        if (this.clockInterval) {
+            clearInterval(this.clockInterval);
+            this.clockInterval = null;
+        }
         console.log("Cleanup completed");
     }
 

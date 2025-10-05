@@ -79,12 +79,9 @@ export class ChartManager {
             if (Array.isArray(financeData)) {
                 financeData.forEach(transaction => {
                     if (transaction && transaction.date) {
-                        // Handle both ISO date format and YYYY-MM-DD format
-                        let transactionDate = transaction.date;
-                        if (transactionDate.includes('T')) {
-                            // ISO format: convert to YYYY-MM-DD
-                            transactionDate = new Date(transactionDate).toISOString().split('T')[0];
-                        }
+                        // Convert to local YYYY-MM-DD format
+                        const txDate = new Date(transaction.date);
+                        const transactionDate = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
                         // Sum all transactions up to and including this date
                         if (transactionDate <= dateKey) {
                             dailyIncome += transaction.income || 0;
@@ -98,12 +95,9 @@ export class ChartManager {
             if (Array.isArray(businessData)) {
                 businessData.forEach(transaction => {
                     if (transaction && transaction.date) {
-                        // Handle both ISO date format and YYYY-MM-DD format
-                        let transactionDate = transaction.date;
-                        if (transactionDate.includes('T')) {
-                            // ISO format: convert to YYYY-MM-DD
-                            transactionDate = new Date(transactionDate).toISOString().split('T')[0];
-                        }
+                        // Convert to local YYYY-MM-DD format
+                        const txDate = new Date(transaction.date);
+                        const transactionDate = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
                         // Sum all transactions up to and including this date
                         if (transactionDate <= dateKey) {
                             dailyIncome += transaction.income || 0;
@@ -454,12 +448,12 @@ export class ChartManager {
         }
 
         // Calculate actual spending by category
+        // Note: financeData is already filtered to current month in renderDashboard()
         const actualSpending = {};
-        const currentMonth = new Date().toISOString().slice(0, 7);
         
         if (Array.isArray(financeData)) {
             financeData
-                .filter(transaction => transaction && transaction.date && transaction.date.startsWith(currentMonth) && transaction.outcome > 0)
+                .filter(transaction => transaction && transaction.outcome > 0)
                 .forEach(transaction => {
                     if (!actualSpending[transaction.category]) {
                         actualSpending[transaction.category] = 0;
