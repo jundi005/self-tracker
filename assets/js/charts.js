@@ -16,8 +16,8 @@ export class ChartManager {
     }
 
     // Render daily cash flow chart
-    renderDailyCashFlowChart(financeData, businessData, month) {
-        console.log('Rendering daily cash flow chart with data:', { financeData, businessData, month });
+    renderDailyCashFlowChart(financeData, businessData, month, openingBalance = 0) {
+        console.log('Rendering daily cash flow chart with data:', { financeData, businessData, month, openingBalance });
         const ctx = document.getElementById('dailyCashFlowChart');
         if (!ctx) {
             console.error('Canvas element dailyCashFlowChart not found');
@@ -107,8 +107,8 @@ export class ChartManager {
                 });
             }
             
-            // Calculate total money at this date (total income - total outcome up to this date)
-            const totalMoneyAtDate = dailyIncome - dailyOutcome;
+            // Calculate total money at this date (opening balance + total income - total outcome up to this date)
+            const totalMoneyAtDate = openingBalance + dailyIncome - dailyOutcome;
             netData.push(totalMoneyAtDate);
         }
         
