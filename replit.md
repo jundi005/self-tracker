@@ -12,7 +12,13 @@ Preferred communication style: Simple, everyday language.
 The application uses a vanilla JavaScript modular architecture with ES6 modules:
 
 - **Modular Design**: Core functionality split into specialized modules (app.js, storage.js, api.js, charts.js, renderers.js)
-- **Mobile-First Responsive Design**: CSS grid and flexbox layout optimized for screens ≥360px width
+- **Mobile-First Responsive Design**: 
+  - Base styles optimized for mobile devices (starting from 360px)
+  - Progressive enhancement with breakpoints: 640px (tablet), 1024px (desktop), 1280px (large desktop)
+  - Touch-optimized UI with minimum 48px touch targets for buttons
+  - Enhanced spacing, typography, and visual feedback for mobile interactions
+  - Horizontal scrolling for tables and grids on small screens
+  - CSS grid and flexbox layout with mobile-first media queries
 - **Single Page Application**: Dynamic page switching without full reloads using JavaScript routing
 - **Offline-First Strategy**: LocalStorage as primary storage with Google Sheets sync capability
 
