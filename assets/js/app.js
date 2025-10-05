@@ -1233,7 +1233,7 @@ class SelfTrackerApp {
                 currentDate.getMonth() + i,
                 1,
             );
-            const monthStr = date.toISOString().slice(0, 7);
+            const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             const monthName = date.toLocaleDateString("id-ID", {
                 month: "long",
                 year: "numeric",
