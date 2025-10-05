@@ -506,7 +506,7 @@ class SelfTrackerApp {
 
     getSampleData(type) {
         const now = new Date();
-        const currentMonth = now.toISOString().slice(0, 7);
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
         switch (type) {
             case "daily":
