@@ -60,6 +60,19 @@ body {
     margin-bottom: 2rem;
 }
 
+.login-logo {
+    margin-bottom: 1.5rem;
+}
+
+.login-logo img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
 .login-header h1 {
     color: #a78bfa;
     font-size: 1.75rem;
