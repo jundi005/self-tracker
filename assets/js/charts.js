@@ -17,7 +17,7 @@ export class ChartManager {
 
     // Render daily cash flow chart
     renderDailyCashFlowChart(financeData, businessData, month, openingBalance = 0) {
-        console.log('Rendering daily cash flow chart with data:', { financeData, businessData, month, openingBalance });
+        console.log('Rendering daily cash flow chart with data:', { financeData, businessData, month });
         const ctx = document.getElementById('dailyCashFlowChart');
         if (!ctx) {
             console.error('Canvas element dailyCashFlowChart not found');
@@ -65,51 +65,43 @@ export class ChartManager {
         }
         console.log('Days in month for cash flow:', daysInMonth, 'for month:', month);
         
+        // Combine all transactions
+        const allTransactions = [...financeData, ...businessData];
+        
         const labels = [];
         const netData = [];
+        let lastKnownTotal = 0;
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${month}-${day.toString().padStart(2, '0')}`;
             labels.push(day);
             
-            let dailyIncome = 0;
-            let dailyOutcome = 0;
+            // Find all transactions for this specific day
+            const dayTransactions = allTransactions.filter(transaction => {
+                if (!transaction || !transaction.date) return false;
+                const txDate = new Date(transaction.date);
+                const transactionDate = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
+                return transactionDate === dateKey;
+            });
             
-            // Calculate from finance data up to this date
-            if (Array.isArray(financeData)) {
-                financeData.forEach(transaction => {
-                    if (transaction && transaction.date) {
-                        // Convert to local YYYY-MM-DD format
-                        const txDate = new Date(transaction.date);
-                        const transactionDate = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
-                        // Sum all transactions up to and including this date
-                        if (transactionDate <= dateKey) {
-                            dailyIncome += transaction.income || 0;
-                            dailyOutcome += transaction.outcome || 0;
-                        }
-                    }
+            // If there are transactions on this day, use the total from the last transaction
+            if (dayTransactions.length > 0) {
+                // Sort by created_at or updated_at to get the most recent transaction
+                dayTransactions.sort((a, b) => {
+                    const dateA = new Date(a.updated_at || a.created_at);
+                    const dateB = new Date(b.updated_at || b.created_at);
+                    return dateB - dateA; // Most recent first
                 });
+                
+                // Get the total from the most recent transaction
+                const mostRecentTransaction = dayTransactions[0];
+                if (mostRecentTransaction.total !== undefined && mostRecentTransaction.total !== null) {
+                    lastKnownTotal = mostRecentTransaction.total;
+                }
             }
             
-            // Calculate from business data up to this date
-            if (Array.isArray(businessData)) {
-                businessData.forEach(transaction => {
-                    if (transaction && transaction.date) {
-                        // Convert to local YYYY-MM-DD format
-                        const txDate = new Date(transaction.date);
-                        const transactionDate = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
-                        // Sum all transactions up to and including this date
-                        if (transactionDate <= dateKey) {
-                            dailyIncome += transaction.income || 0;
-                            dailyOutcome += transaction.outcome || 0;
-                        }
-                    }
-                });
-            }
-            
-            // Calculate total money at this date (opening balance + total income - total outcome up to this date)
-            const totalMoneyAtDate = openingBalance + dailyIncome - dailyOutcome;
-            netData.push(totalMoneyAtDate);
+            // Use the last known total for this day
+            netData.push(lastKnownTotal);
         }
         
         console.log('Chart data prepared:', { labels: labels.length, netData: netData.length });

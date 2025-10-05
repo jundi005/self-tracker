@@ -207,10 +207,10 @@ function setupSheetHeaders(sheet, sheetName) {
       headers = ['id', 'name', 'data', 'created_at', 'updated_at'];
       break;
     case CONFIG.SHEETS.FINANCE:
-      headers = ['id', 'date', 'category', 'description', 'income', 'outcome', 'created_at', 'updated_at'];
+      headers = ['id', 'date', 'category', 'description', 'income', 'outcome', 'total', 'created_at', 'updated_at'];
       break;
     case CONFIG.SHEETS.BUSINESS:
-      headers = ['id', 'date', 'type', 'income', 'outcome', 'note', 'created_at', 'updated_at'];
+      headers = ['id', 'date', 'type', 'income', 'outcome', 'total', 'note', 'created_at', 'updated_at'];
       break;
     case CONFIG.SHEETS.SETTINGS:
       headers = ['key', 'value', 'updated_at'];
@@ -383,11 +383,13 @@ function getTransactionData(sheet, type) {
       item.description = row[3] || '';
       item.income = parseFloat(row[4]) || 0;
       item.outcome = parseFloat(row[5]) || 0;
+      item.total = parseFloat(row[6]) || 0;
     } else if (type === 'business') {
       item.type = row[2] || '';
       item.income = parseFloat(row[3]) || 0;
       item.outcome = parseFloat(row[4]) || 0;
-      item.note = row[5] || '';
+      item.total = parseFloat(row[5]) || 0;
+      item.note = row[6] || '';
     }
     
     return item;
@@ -456,6 +458,7 @@ function pushDataToSheet(spreadsheet, type, data) {
           item.description,
           item.income,
           item.outcome,
+          '',
           item.created_at,
           item.updated_at
         ];
@@ -466,6 +469,7 @@ function pushDataToSheet(spreadsheet, type, data) {
           item.type,
           item.income,
           item.outcome,
+          '',
           item.note || '',
           item.created_at,
           item.updated_at
@@ -526,9 +530,9 @@ function addItemToSheet(spreadsheet, type, item) {
     
     values = [item.id, item.name, JSON.stringify(dataObj), item.created_at, item.updated_at];
   } else if (type === 'finance') {
-    values = [item.id, item.date, item.category, item.description, item.income, item.outcome, item.created_at, item.updated_at];
+    values = [item.id, item.date, item.category, item.description, item.income, item.outcome, '', item.created_at, item.updated_at];
   } else if (type === 'business') {
-    values = [item.id, item.date, item.type, item.income, item.outcome, item.note || '', item.created_at, item.updated_at];
+    values = [item.id, item.date, item.type, item.income, item.outcome, '', item.note || '', item.created_at, item.updated_at];
   }
   
   sheet.getRange(lastRow, 1, 1, values.length).setValues([values]);
@@ -573,12 +577,14 @@ function updateItemInSheet(spreadsheet, type, id, updates) {
     if (updates.description) sheet.getRange(actualRowIndex, 4).setValue(updates.description);
     if (updates.income !== undefined) sheet.getRange(actualRowIndex, 5).setValue(updates.income);
     if (updates.outcome !== undefined) sheet.getRange(actualRowIndex, 6).setValue(updates.outcome);
+    // Note: Column 7 is 'total' which should be managed by spreadsheet formulas, not updated from frontend
   } else if (type === 'business') {
     if (updates.date) sheet.getRange(actualRowIndex, 2).setValue(updates.date);
     if (updates.type) sheet.getRange(actualRowIndex, 3).setValue(updates.type);
     if (updates.income !== undefined) sheet.getRange(actualRowIndex, 4).setValue(updates.income);
     if (updates.outcome !== undefined) sheet.getRange(actualRowIndex, 5).setValue(updates.outcome);
-    if (updates.note) sheet.getRange(actualRowIndex, 6).setValue(updates.note);
+    // Note: Column 6 is 'total' which should be managed by spreadsheet formulas, not updated from frontend
+    if (updates.note) sheet.getRange(actualRowIndex, 7).setValue(updates.note);
   }
   
   // Update timestamp

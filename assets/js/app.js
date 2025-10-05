@@ -31,7 +31,6 @@ class SelfTrackerApp {
                     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                 })(),
                 monthlyBudget: 5000000,
-                openingBalance: 0,
                 categories: [
                     {
                         id: 1,
@@ -987,8 +986,7 @@ class SelfTrackerApp {
         this.charts.renderDailyCashFlowChart(
             currentMonthFinance,
             currentMonthBusiness,
-            currentMonth,
-            this.data.settings.openingBalance || 0
+            currentMonth
         );
         this.charts.renderDailyChart(
             this.data.daily,
@@ -1008,8 +1006,6 @@ class SelfTrackerApp {
             this.data.settings.activeMonth;
         document.getElementById("monthlyBudget").value =
             this.data.settings.monthlyBudget;
-        document.getElementById("openingBalance").value =
-            this.data.settings.openingBalance || 0;
 
         this.renderBudgetCategories();
     }
@@ -1803,8 +1799,6 @@ class SelfTrackerApp {
             storageMode: "online", // Always online mode
             monthlyBudget:
                 parseInt(document.getElementById("monthlyBudget").value) || 0,
-            openingBalance:
-                parseInt(document.getElementById("openingBalance").value) || 0,
             categories: this.data.settings.categories,
         };
 
