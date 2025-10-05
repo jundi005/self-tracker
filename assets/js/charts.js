@@ -9,10 +9,14 @@ export class ChartManager {
             danger: '#ef4444',
             warning: '#f59e0b',
             info: '#3b82f6',
-            background: 'rgba(31, 41, 55, 0.9)',
+            background: 'rgba(31, 41, 55, 0.95)',
             text: '#f3f4f6',
-            grid: 'rgba(139, 92, 246, 0.2)'
+            grid: 'rgba(139, 92, 246, 0.15)'
         };
+        
+        Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = this.colors.text;
     }
 
     // Render daily cash flow chart
@@ -115,51 +119,75 @@ export class ChartManager {
                     label: 'Total Uang',
                     data: netData,
                     borderColor: this.colors.primary,
-                    backgroundColor: this.colors.primary + '20',
+                    backgroundColor: this.colors.primary + '30',
                     tension: 0.4,
                     fill: true,
-                    borderWidth: 2
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: this.colors.primary,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 scales: {
                     x: {
                         ticks: {
-                            color: this.colors.text
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 15
                         },
                         grid: {
-                            color: this.colors.grid
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     },
                     y: {
                         beginAtZero: true,
                         ticks: {
                             color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 8,
                             callback: function(value) {
                                 return new Intl.NumberFormat('id-ID', {
                                     style: 'currency',
                                     currency: 'IDR',
-                                    minimumFractionDigits: 0
+                                    minimumFractionDigits: 0,
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
                                 }).format(value);
                             }
                         },
                         grid: {
-                            color: this.colors.grid
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     }
                 },
                 plugins: {
                     legend: {
-                        labels: {
-                            color: this.colors.text
-                        }
+                        display: false
                     },
                     tooltip: {
+                        backgroundColor: this.colors.background,
                         titleColor: this.colors.text,
                         bodyColor: this.colors.text,
-                        backgroundColor: this.colors.background,
+                        borderColor: this.colors.primary,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        usePointStyle: true,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
                         callbacks: {
                             label: function(context) {
                                 const label = context.dataset.label || '';
@@ -265,31 +293,78 @@ export class ChartManager {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Progress Harian (%)',
+                    label: 'Progress Harian',
                     data: data,
-                    borderColor: this.colors.primary,
-                    backgroundColor: this.colors.primary + '20',
+                    borderColor: this.colors.info,
+                    backgroundColor: this.colors.info + '30',
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: this.colors.info,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 scales: {
+                    x: {
+                        ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 15
+                        },
+                        grid: {
+                            color: this.colors.grid,
+                            drawBorder: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 8,
                             callback: function(value) {
                                 return value + '%';
                             }
+                        },
+                        grid: {
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     }
                 },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        backgroundColor: this.colors.background,
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        borderColor: this.colors.info,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        usePointStyle: true,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
                     }
                 }
             }
@@ -328,30 +403,65 @@ export class ChartManager {
             data: {
                 labels: ['Mingguan', 'Bulanan'],
                 datasets: [{
-                    label: 'Rata-rata Completion (%)',
+                    label: 'Completion',
                     data: [weeklyCompletion, monthlyCompletion],
-                    backgroundColor: [this.colors.primary, this.colors.secondary],
+                    backgroundColor: [this.colors.primary + '90', this.colors.secondary + '90'],
                     borderColor: [this.colors.primary, this.colors.secondary],
-                    borderWidth: 1
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
+                    x: {
+                        ticks: {
+                            color: this.colors.text,
+                            font: { size: 12, weight: '600' }
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 8,
                             callback: function(value) {
                                 return value + '%';
                             }
+                        },
+                        grid: {
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     }
                 },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        backgroundColor: this.colors.background,
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        borderColor: this.colors.primary,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
                     }
                 }
             }
@@ -399,19 +509,37 @@ export class ChartManager {
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: backgroundColors,
-                    borderColor: backgroundColors,
-                    borderWidth: 2
+                    backgroundColor: backgroundColors.map(c => c + 'D0'),
+                    borderColor: '#1f2937',
+                    borderWidth: 3,
+                    hoverOffset: 8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 12,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
                     },
                     tooltip: {
+                        backgroundColor: this.colors.background,
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        borderColor: this.colors.primary,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
                         callbacks: {
                             label: function(context) {
                                 const value = context.raw;
@@ -470,16 +598,20 @@ export class ChartManager {
                     {
                         label: 'Budget',
                         data: budgetData,
-                        backgroundColor: this.colors.success + '80',
+                        backgroundColor: this.colors.success + 'A0',
                         borderColor: this.colors.success,
-                        borderWidth: 1
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
                     },
                     {
                         label: 'Realisasi',
                         data: actualData,
-                        backgroundColor: this.colors.danger + '80',
-                        borderColor: this.colors.danger,
-                        borderWidth: 1
+                        backgroundColor: this.colors.warning + 'A0',
+                        borderColor: this.colors.warning,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
                     }
                 ]
             },
@@ -487,17 +619,60 @@ export class ChartManager {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
+                    x: {
+                        ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            maxRotation: 45,
+                            minRotation: 0
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 8,
                             callback: function(value) {
-                                return 'Rp ' + value.toLocaleString('id-ID');
+                                return new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
                             }
+                        },
+                        grid: {
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     }
                 },
                 plugins: {
+                    legend: {
+                        labels: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 12,
+                            usePointStyle: true,
+                            pointStyle: 'rect'
+                        }
+                    },
                     tooltip: {
+                        backgroundColor: this.colors.background,
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        borderColor: this.colors.primary,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
                         callbacks: {
                             label: function(context) {
                                 return `${context.dataset.label}: Rp ${context.raw.toLocaleString('id-ID')}`;
@@ -547,16 +722,20 @@ export class ChartManager {
                     {
                         label: 'Pendapatan',
                         data: incomeData,
-                        backgroundColor: this.colors.success + '80',
+                        backgroundColor: this.colors.success + 'A0',
                         borderColor: this.colors.success,
-                        borderWidth: 1
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
                     },
                     {
                         label: 'Pengeluaran',
                         data: outcomeData,
-                        backgroundColor: this.colors.danger + '80',
+                        backgroundColor: this.colors.danger + 'A0',
                         borderColor: this.colors.danger,
-                        borderWidth: 1
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
                     }
                 ]
             },
@@ -564,17 +743,60 @@ export class ChartManager {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
+                    x: {
+                        ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            maxRotation: 45,
+                            minRotation: 0
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 8,
                             callback: function(value) {
-                                return 'Rp ' + value.toLocaleString('id-ID');
+                                return new Intl.NumberFormat('id-ID', {
+                                    style: 'currency',
+                                    currency: 'IDR',
+                                    minimumFractionDigits: 0,
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
                             }
+                        },
+                        grid: {
+                            color: this.colors.grid,
+                            drawBorder: false
                         }
                     }
                 },
                 plugins: {
+                    legend: {
+                        labels: {
+                            color: this.colors.text,
+                            font: { size: 11, weight: '500' },
+                            padding: 12,
+                            usePointStyle: true,
+                            pointStyle: 'rect'
+                        }
+                    },
                     tooltip: {
+                        backgroundColor: this.colors.background,
+                        titleColor: this.colors.text,
+                        bodyColor: this.colors.text,
+                        borderColor: this.colors.primary,
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 12, weight: '500' },
                         callbacks: {
                             label: function(context) {
                                 return `${context.dataset.label}: Rp ${context.raw.toLocaleString('id-ID')}`;
