@@ -66,14 +66,7 @@ export class ChartManager {
         console.log('Days in month for cash flow:', daysInMonth, 'for month:', month);
         
         const labels = [];
-        const incomeData = [];
-        const outcomeData = [];
         const netData = [];
-
-        // Running totals for cumulative chart
-        let cumulativeIncome = 0;
-        let cumulativeOutcome = 0;
-        let cumulativeNet = 0;
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${month}-${day.toString().padStart(2, '0')}`;
@@ -82,7 +75,7 @@ export class ChartManager {
             let dailyIncome = 0;
             let dailyOutcome = 0;
             
-            // Calculate from finance data
+            // Calculate from finance data up to this date
             if (Array.isArray(financeData)) {
                 financeData.forEach(transaction => {
                     if (transaction && transaction.date) {
@@ -92,7 +85,8 @@ export class ChartManager {
                             // ISO format: convert to YYYY-MM-DD
                             transactionDate = new Date(transactionDate).toISOString().split('T')[0];
                         }
-                        if (transactionDate === dateKey) {
+                        // Sum all transactions up to and including this date
+                        if (transactionDate <= dateKey) {
                             dailyIncome += transaction.income || 0;
                             dailyOutcome += transaction.outcome || 0;
                         }
@@ -100,7 +94,7 @@ export class ChartManager {
                 });
             }
             
-            // Calculate from business data
+            // Calculate from business data up to this date
             if (Array.isArray(businessData)) {
                 businessData.forEach(transaction => {
                     if (transaction && transaction.date) {
@@ -110,7 +104,8 @@ export class ChartManager {
                             // ISO format: convert to YYYY-MM-DD
                             transactionDate = new Date(transactionDate).toISOString().split('T')[0];
                         }
-                        if (transactionDate === dateKey) {
+                        // Sum all transactions up to and including this date
+                        if (transactionDate <= dateKey) {
                             dailyIncome += transaction.income || 0;
                             dailyOutcome += transaction.outcome || 0;
                         }
@@ -118,18 +113,12 @@ export class ChartManager {
                 });
             }
             
-            // Add daily amounts to cumulative totals
-            cumulativeIncome += dailyIncome;
-            cumulativeOutcome += dailyOutcome;
-            cumulativeNet += (dailyIncome - dailyOutcome);
-            
-            // Push cumulative values instead of daily values
-            incomeData.push(cumulativeIncome);
-            outcomeData.push(cumulativeOutcome);
-            netData.push(cumulativeNet);
+            // Calculate total money at this date (total income - total outcome up to this date)
+            const totalMoneyAtDate = dailyIncome - dailyOutcome;
+            netData.push(totalMoneyAtDate);
         }
         
-        console.log('Chart data prepared:', { labels: labels.length, incomeData: incomeData.length, outcomeData: outcomeData.length });
+        console.log('Chart data prepared:', { labels: labels.length, netData: netData.length });
 
         try {
             this.charts.dailyCashFlow = new Chart(ctx, {
